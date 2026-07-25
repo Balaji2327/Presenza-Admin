@@ -108,6 +108,8 @@ export default function AdminDashboard() {
   const [showFilterPopover, setShowFilterPopover] = useState<boolean>(false);
   const [tempDept, setTempDept] = useState<Department | null>(null);
   const [tempClass, setTempClass] = useState<string>("");
+  const [filterDept, setFilterDept] = useState<Department | null>(null);
+  const [filterClass, setFilterClass] = useState<string>("");
 
   // Add Dept & Class state variables
   const [isAddingDept, setIsAddingDept] = useState(false);
@@ -208,10 +210,6 @@ export default function AdminDashboard() {
           } as Department;
         });
         setDepartments(deptsData);
-        if (deptsData.length > 0) {
-          // Auto-expand all departments so classes are visible immediately
-          setExpandedDepts(new Set(deptsData.map(d => d.id)));
-        }
         setShowAdblockWarning(false);
         clearTimeout(timer);
       } catch (err: any) {
@@ -1131,10 +1129,10 @@ export default function AdminDashboard() {
 
   const filteredAllStudents = allStudents.filter((s) => {
     const term = searchTerm.toLowerCase();
-    if (selectedDept && s.department !== selectedDept.id) {
+    if (filterDept && s.department !== filterDept.id) {
       return false;
     }
-    if (selectedClass && s.class !== selectedClass) {
+    if (filterClass && s.class !== filterClass) {
       return false;
     }
     return (
@@ -1149,10 +1147,10 @@ export default function AdminDashboard() {
 
   const filteredAllFaculty = faculties.filter((f) => {
     const term = searchTerm.toLowerCase();
-    if (selectedDept && f.department !== selectedDept.id) {
+    if (filterDept && f.department !== filterDept.id) {
       return false;
     }
-    if (selectedClass && !((f.classes || []) as string[]).includes(selectedClass)) {
+    if (filterClass && !((f.classes || []) as string[]).includes(filterClass)) {
       return false;
     }
     return (
@@ -1540,13 +1538,13 @@ export default function AdminDashboard() {
                     <button
                       onClick={() => {
                         if (!showFilterPopover) {
-                          setTempDept(selectedDept);
-                          setTempClass(selectedClass);
+                          setTempDept(filterDept);
+                          setTempClass(filterClass);
                         }
                         setShowFilterPopover(!showFilterPopover);
                       }}
                       className={`p-2.5 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
-                        selectedDept || selectedClass
+                        filterDept || filterClass
                           ? "bg-orange-50 border-orange-200 text-orange-600 shadow-xs"
                           : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
                       }`}
@@ -1559,13 +1557,13 @@ export default function AdminDashboard() {
                       <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 z-20 space-y-3">
                         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                           <span className="text-xs font-bold text-slate-800">Filter Records</span>
-                          {(selectedDept || selectedClass || tempDept || tempClass) && (
+                          {(filterDept || filterClass || tempDept || tempClass) && (
                             <button
                               onClick={() => {
                                 setTempDept(null);
                                 setTempClass("");
-                                setSelectedDept(null);
-                                setSelectedClass("");
+                                setFilterDept(null);
+                                setFilterClass("");
                                 setShowFilterPopover(false);
                               }}
                               className="text-[10px] font-bold text-rose-500 hover:underline cursor-pointer"
@@ -1617,8 +1615,8 @@ export default function AdminDashboard() {
                           <button
                             type="button"
                             onClick={() => {
-                              setSelectedDept(tempDept);
-                              setSelectedClass(tempClass);
+                              setFilterDept(tempDept);
+                              setFilterClass(tempClass);
                               setShowFilterPopover(false);
                             }}
                             className="w-full py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg transition-all cursor-pointer text-center"
@@ -1772,13 +1770,13 @@ export default function AdminDashboard() {
                     <button
                       onClick={() => {
                         if (!showFilterPopover) {
-                          setTempDept(selectedDept);
-                          setTempClass(selectedClass);
+                          setTempDept(filterDept);
+                          setTempClass(filterClass);
                         }
                         setShowFilterPopover(!showFilterPopover);
                       }}
                       className={`p-2.5 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
-                        selectedDept || selectedClass
+                        filterDept || filterClass
                           ? "bg-orange-50 border-orange-200 text-orange-600 shadow-xs"
                           : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
                       }`}
@@ -1791,13 +1789,13 @@ export default function AdminDashboard() {
                       <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 z-20 space-y-3">
                         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                           <span className="text-xs font-bold text-slate-800">Filter Records</span>
-                          {(selectedDept || selectedClass || tempDept || tempClass) && (
+                          {(filterDept || filterClass || tempDept || tempClass) && (
                             <button
                               onClick={() => {
                                 setTempDept(null);
                                 setTempClass("");
-                                setSelectedDept(null);
-                                setSelectedClass("");
+                                setFilterDept(null);
+                                setFilterClass("");
                                 setShowFilterPopover(false);
                               }}
                               className="text-[10px] font-bold text-rose-500 hover:underline cursor-pointer"
@@ -1849,8 +1847,8 @@ export default function AdminDashboard() {
                           <button
                             type="button"
                             onClick={() => {
-                              setSelectedDept(tempDept);
-                              setSelectedClass(tempClass);
+                              setFilterDept(tempDept);
+                              setFilterClass(tempClass);
                               setShowFilterPopover(false);
                             }}
                             className="w-full py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg transition-all cursor-pointer text-center"

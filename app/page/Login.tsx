@@ -23,7 +23,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans p-6">
       <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-xl p-8 space-y-6">
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="bg-orange-500 p-2 rounded-2xl h-16 w-16 shrink-0 shadow-lg shadow-orange-500/20 flex items-center justify-center">
+          <div className="bg-orange-100 p-2 rounded-2xl h-16 w-16 shrink-0 shadow-lg shadow-orange-500/20 flex items-center justify-center">
             <img 
               src="/splash_logo_dark.png" 
               alt="Presenza Logo" 
