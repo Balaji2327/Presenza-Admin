@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Login from "./Login";
+import AttendanceSheetView from "../components/AttendanceSheetView";
+import TimetableEditorView from "../components/TimetableEditorView";
 import ExcelJS from "exceljs";
 import { db, storage } from "../firebase";
 import {
@@ -32,7 +35,9 @@ import {
   Sparkles,
   Info,
   Download,
-  X
+  X,
+  Filter,
+  LogOut
 } from "lucide-react";
 
 interface Department {
@@ -66,8 +71,7 @@ export default function AdminDashboard() {
 
   // Auth states
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [loginUsername, setLoginUsername] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
+  const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
 
   // All Students list (loaded globally for list view)
   const [allStudents, setAllStudents] = useState<Student[]>([]);
@@ -86,7 +90,35 @@ export default function AdminDashboard() {
 
   // Editing state variables
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [originalStudentId, setOriginalStudentId] = useState<string>("");
+  const [savingStudent, setSavingStudent] = useState<boolean>(false);
   const [editingFaculty, setEditingFaculty] = useState<any | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Adding student states
+  const [isAddingStudent, setIsAddingStudent] = useState<boolean>(false);
+  const [newStudent, setNewStudent] = useState<Partial<Student>>({
+    id: "",
+    name: "",
+    email: "",
+    class: "",
+    department: "",
+    mentor_id: ""
+  });
+  const [showFilterPopover, setShowFilterPopover] = useState<boolean>(false);
+  const [tempDept, setTempDept] = useState<Department | null>(null);
+  const [tempClass, setTempClass] = useState<string>("");
+
+  // Add Dept & Class state variables
+  const [isAddingDept, setIsAddingDept] = useState(false);
+  const [newDeptId, setNewDeptId] = useState("");
+  const [newDeptName, setNewDeptName] = useState("");
+  const [savingDept, setSavingDept] = useState(false);
+
+  const [isAddingClass, setIsAddingClass] = useState(false);
+  const [targetDeptId, setTargetDeptId] = useState("");
+  const [newClassName, setNewClassName] = useState("");
+  const [savingClass, setSavingClass] = useState(false);
 
   // Timetable states
   const [timetableGrid, setTimetableGrid] = useState<Record<string, string[]>>({
@@ -177,10 +209,6 @@ export default function AdminDashboard() {
         });
         setDepartments(deptsData);
         if (deptsData.length > 0) {
-          setSelectedDept(deptsData[0]);
-          if (deptsData[0].classes && deptsData[0].classes.length > 0) {
-            setSelectedClass(deptsData[0].classes[0]);
-          }
           // Auto-expand all departments so classes are visible immediately
           setExpandedDepts(new Set(deptsData.map(d => d.id)));
         }
@@ -327,12 +355,98 @@ export default function AdminDashboard() {
     }
   };
 
+  // Create Department Handler
+  const handleCreateDept = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDeptId || !newDeptName) return;
+    setSavingDept(true);
+    try {
+      const deptIdClean = newDeptId.trim().toUpperCase();
+      const deptDocRef = doc(db, "colleges", "departments", "all_departments", deptIdClean);
+      await setDoc(deptDocRef, {
+        name: newDeptName.trim(),
+        classes: []
+      });
+      
+      const newD: Department = { id: deptIdClean, name: newDeptName.trim(), classes: [] };
+      setDepartments(prev => [...prev, newD]);
+      
+      setIsAddingDept(false);
+      setNewDeptId("");
+      setNewDeptName("");
+      alert("Department created successfully!");
+    } catch (err: any) {
+      console.error(err);
+      alert("Error creating department: " + err.message);
+    } finally {
+      setSavingDept(false);
+    }
+  };
+
+  // Create Class Handler
+  const handleCreateClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetDeptId || !newClassName) return;
+    setSavingClass(true);
+    try {
+      const dept = departments.find(d => d.id === targetDeptId);
+      if (!dept) throw new Error("Department not found");
+
+      const classNameClean = newClassName.trim();
+      const updatedClasses = [...(dept.classes || [])];
+      if (updatedClasses.includes(classNameClean)) {
+        alert("Class already exists in this department!");
+        setSavingClass(false);
+        return;
+      }
+      updatedClasses.push(classNameClean);
+
+      // 1. Update the classes array in the department document
+      const deptDocRef = doc(db, "colleges", "departments", "all_departments", targetDeptId);
+      await updateDoc(deptDocRef, {
+        classes: updatedClasses
+      });
+
+      // 2. Create the class document in the 'clasees' subcollection
+      const classDocRef = doc(
+        db,
+        "colleges",
+        "departments",
+        "all_departments",
+        targetDeptId,
+        "clasees",
+        classNameClean
+      );
+      await setDoc(classDocRef, {
+        timetables: {}
+      });
+
+      setDepartments(prev => prev.map(d => {
+        if (d.id === targetDeptId) {
+          return { ...d, classes: updatedClasses };
+        }
+        return d;
+      }));
+
+      setIsAddingClass(false);
+      setNewClassName("");
+      setTargetDeptId("");
+      alert("Class created successfully!");
+    } catch (err: any) {
+      console.error(err);
+      alert("Error creating class: " + err.message);
+    } finally {
+      setSavingClass(false);
+    }
+  };
+
   // Fetch data on login status
   useEffect(() => {
     const logged = localStorage.getItem("adminLoggedIn");
     if (logged === "true") {
       setIsLoggedIn(true);
     }
+    setCheckingAuth(false);
   }, []);
 
   useEffect(() => {
@@ -347,20 +461,124 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!editingStudent) return;
     try {
-      const studentDocRef = doc(db, "colleges", "students", "all_students", editingStudent.id);
-      await updateDoc(studentDocRef, {
-        name: editingStudent.name,
-        email: editingStudent.email,
-        class: editingStudent.class,
-        department: editingStudent.department,
-        mentor_id: editingStudent.mentor_id || "",
-      });
-      alert("Student updated successfully!");
+      setSavingStudent(true);
+      const isIdChanged = editingStudent.id !== originalStudentId;
+
+      if (isIdChanged) {
+        // Check if student with new ID already exists
+        const newStudentDocRef = doc(db, "colleges", "students", "all_students", editingStudent.id);
+        const newStudentSnap = await getDoc(newStudentDocRef);
+        if (newStudentSnap.exists()) {
+          alert(`A student with ID ${editingStudent.id} already exists!`);
+          setSavingStudent(false);
+          return;
+        }
+
+        // Create new student document
+        await setDoc(newStudentDocRef, {
+          name: editingStudent.name,
+          email: editingStudent.email,
+          class: editingStudent.class,
+          department: editingStudent.department,
+          mentor_id: editingStudent.mentor_id || "",
+        });
+
+        // Copy attendance subcollection
+        const oldAttendanceRef = collection(db, "colleges", "students", "all_students", originalStudentId, "attendance");
+        const attendanceSnap = await getDocs(oldAttendanceRef);
+        for (const docSnap of attendanceSnap.docs) {
+          const newAttDocRef = doc(db, "colleges", "students", "all_students", editingStudent.id, "attendance", docSnap.id);
+          await setDoc(newAttDocRef, docSnap.data());
+          // delete old attendance doc
+          await deleteDoc(docSnap.ref);
+        }
+
+        // Delete old student document
+        const oldStudentDocRef = doc(db, "colleges", "students", "all_students", originalStudentId);
+        await deleteDoc(oldStudentDocRef);
+      } else {
+        // Just update existing document fields
+        const studentDocRef = doc(db, "colleges", "students", "all_students", editingStudent.id);
+        await updateDoc(studentDocRef, {
+          name: editingStudent.name,
+          email: editingStudent.email,
+          class: editingStudent.class,
+          department: editingStudent.department,
+          mentor_id: editingStudent.mentor_id || "",
+        });
+      }
+
+      setSuccessMessage("Student profile updated successfully!");
       setEditingStudent(null);
       fetchAllStudents();
     } catch (err: any) {
       console.error("Error updating student:", err);
       alert("Failed to update student: " + err.message);
+    } finally {
+      setSavingStudent(false);
+    }
+  };
+
+  const handleCreateStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStudent.id || !newStudent.name || !newStudent.email || !newStudent.department || !newStudent.class) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+    try {
+      setSavingStudent(true);
+      const studentDocRef = doc(db, "colleges", "students", "all_students", newStudent.id);
+      const studentSnap = await getDoc(studentDocRef);
+      if (studentSnap.exists()) {
+        alert(`A student with ID ${newStudent.id} already exists!`);
+        setSavingStudent(false);
+        return;
+      }
+
+      await setDoc(studentDocRef, {
+        name: newStudent.name,
+        email: newStudent.email,
+        class: newStudent.class,
+        department: newStudent.department,
+        mentor_id: newStudent.mentor_id || "",
+      });
+
+      setSuccessMessage("Student added successfully!");
+      setIsAddingStudent(false);
+      setNewStudent({
+        id: "",
+        name: "",
+        email: "",
+        class: "",
+        department: "",
+        mentor_id: ""
+      });
+      fetchAllStudents();
+    } catch (err: any) {
+      console.error("Error creating student:", err);
+      alert("Failed to add student: " + err.message);
+    } finally {
+      setSavingStudent(false);
+    }
+  };
+
+  const handleDeleteStudent = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this student profile?")) return;
+    try {
+      const studentDocRef = doc(db, "colleges", "students", "all_students", id);
+      await deleteDoc(studentDocRef);
+      
+      const attendanceRef = collection(db, "colleges", "students", "all_students", id, "attendance");
+      const attendanceSnap = await getDocs(attendanceRef);
+      for (const docSnap of attendanceSnap.docs) {
+        await deleteDoc(docSnap.ref);
+      }
+
+      alert("Student profile deleted successfully.");
+      fetchAllStudents();
+    } catch (err: any) {
+      console.error("Error deleting student:", err);
+      alert("Failed to delete student: " + err.message);
     }
   };
 
@@ -443,10 +661,10 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    if (currentView === "timetable" || currentView === "attendance") {
+    if (currentView === "students" && (studentSubView === "timetable" || studentSubView === "attendance")) {
       fetchTimetable();
     }
-  }, [selectedDept, selectedClass, selectedSemester, currentView]);
+  }, [selectedDept, selectedClass, selectedSemester, currentView, studentSubView]);
 
   const handleAddFaculty = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -889,14 +1107,9 @@ export default function AdminDashboard() {
     document.body.removeChild(link);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (loginUsername === "admin" && loginPassword === "admin123") {
-      setIsLoggedIn(true);
-      localStorage.setItem("adminLoggedIn", "true");
-    } else {
-      alert("Invalid credentials. Try admin / admin123.");
-    }
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+    localStorage.setItem("adminLoggedIn", "true");
   };
 
   const handleLogout = () => {
@@ -904,59 +1117,26 @@ export default function AdminDashboard() {
     localStorage.removeItem("adminLoggedIn");
   };
 
-  if (!isLoggedIn) {
+  if (checkingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans p-6">
-        <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-xl p-8 space-y-6">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <div className="bg-orange-500 p-3 rounded-2xl text-white shadow-lg shadow-orange-500/20">
-              <GraduationCap className="h-8 w-8" />
-            </div>
-            <h1 className="font-extrabold text-2xl tracking-tight text-slate-800">
-              PRESENZA ADMIN
-            </h1>
-            <p className="text-sm text-slate-400 font-semibold">Sign in to manage students &amp; faculty</p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Username</label>
-              <input
-                type="text"
-                placeholder="Username"
-                value={loginUsername}
-                onChange={(e) => setLoginUsername(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none focus:border-orange-500"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Password</label>
-              <input
-                type="password"
-                placeholder="Password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none focus:border-orange-500"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold transition-all shadow-md shadow-orange-500/10 cursor-pointer text-center"
-            >
-              Sign In
-            </button>
-          </form>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
       </div>
     );
   }
 
+  if (!isLoggedIn) {
+    return <Login onLoginSuccess={handleLoginSuccess} />;
+  }
+
   const filteredAllStudents = allStudents.filter((s) => {
     const term = searchTerm.toLowerCase();
+    if (selectedDept && s.department !== selectedDept.id) {
+      return false;
+    }
+    if (selectedClass && s.class !== selectedClass) {
+      return false;
+    }
     return (
       s.id.toLowerCase().includes(term) ||
       s.name.toLowerCase().includes(term) ||
@@ -969,6 +1149,12 @@ export default function AdminDashboard() {
 
   const filteredAllFaculty = faculties.filter((f) => {
     const term = searchTerm.toLowerCase();
+    if (selectedDept && f.department !== selectedDept.id) {
+      return false;
+    }
+    if (selectedClass && !((f.classes || []) as string[]).includes(selectedClass)) {
+      return false;
+    }
     return (
       (f.id || "").toLowerCase().includes(term) ||
       (f.name || "").toLowerCase().includes(term) ||
@@ -984,8 +1170,12 @@ export default function AdminDashboard() {
       <aside className="w-64 border-r border-slate-200 bg-white flex flex-col shadow-sm h-screen sticky top-0">
         {/* Brand Header */}
         <div className="p-6 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
-          <div className="bg-orange-500 p-2 rounded-xl text-white shadow-md shadow-orange-500/10">
-            <GraduationCap className="h-6 w-6" />
+          <div className="bg-orange-100 p-0 rounded-xl h-11 w-11 shrink-0 shadow-md shadow-orange-500/10 flex items-center justify-center overflow-hidden">
+            <img 
+              src="/splash_logo_dark.png" 
+              alt="Presenza Logo" 
+              className="h-full w-full object-contain"
+            />
           </div>
           <div>
             <h1 className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-orange-600 to-amber-500 bg-clip-text text-transparent">
@@ -998,8 +1188,32 @@ export default function AdminDashboard() {
         {/* Dept + Class Tree */}
         <div className="flex-1 overflow-y-auto">
           {/* Section Label */}
-          <div className="px-4 pt-4 pb-1">
+          <div className="px-4 pt-4 pb-1 flex items-center justify-between">
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Departments</span>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setIsAddingDept(true)}
+                className="text-[10px] font-bold text-orange-500 hover:text-orange-600 transition cursor-pointer"
+                title="Add Department"
+              >
+                + Dept
+              </button>
+              <span className="text-slate-300 text-[10px]">|</span>
+              <button
+                onClick={() => {
+                  if (departments.length === 0) {
+                    alert("Please add a department first!");
+                    return;
+                  }
+                  setTargetDeptId(departments[0].id);
+                  setIsAddingClass(true);
+                }}
+                className="text-[10px] font-bold text-orange-500 hover:text-orange-600 transition cursor-pointer"
+                title="Add Class"
+              >
+                + Class
+              </button>
+            </div>
           </div>
 
           {loadingDepts ? (
@@ -1026,13 +1240,9 @@ export default function AdminDashboard() {
                           return next;
                         });
                         setSelectedDept(dept);
-                        if (dept.classes && dept.classes.length > 0) {
-                          setSelectedClass(dept.classes[0]);
-                        } else {
-                          setSelectedClass("");
-                        }
+                        setSelectedClass("");
                       }}
-                      className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all ${
                         isActiveDept
                           ? "bg-orange-50 text-orange-600 border border-orange-100"
                           : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent"
@@ -1065,7 +1275,7 @@ export default function AdminDashboard() {
                                   setCurrentView("students");
                                   setStudentSubView("attendance");
                                 }}
-                                className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-bold transition-all ${
+                                className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-bold cursor-pointer transition-all ${
                                   isActiveClass
                                     ? "bg-orange-500 text-white shadow-sm shadow-orange-500/20"
                                     : "text-slate-500 hover:bg-orange-50 hover:text-orange-600"
@@ -1105,8 +1315,9 @@ export default function AdminDashboard() {
                 setStudentSubView("list");
                 setSearchTerm("");
                 setEditingStudent(null);
+                setSelectedDept(null);
               }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 border ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all duration-200 border ${
                 currentView === "students"
                   ? "bg-orange-500 border-orange-400 text-white shadow-md shadow-orange-500/10"
                   : "text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900"
@@ -1121,8 +1332,9 @@ export default function AdminDashboard() {
                 setCurrentView("faculty");
                 setSearchTerm("");
                 setEditingFaculty(null);
+                setSelectedDept(null);
               }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 border ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all duration-200 border ${
                 currentView === "faculty"
                   ? "bg-orange-500 border-orange-400 text-white shadow-md shadow-orange-500/10"
                   : "text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900"
@@ -1140,7 +1352,7 @@ export default function AdminDashboard() {
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-100 rounded-xl text-rose-600 text-sm font-bold transition-all cursor-pointer"
           >
-            <XCircle className="h-4 w-4" />
+            <LogOut className="h-4 w-4" />
             <span>Logout</span>
           </button>
         </div>
@@ -1246,7 +1458,7 @@ export default function AdminDashboard() {
                         setSelectedSemester(sem);
                         setSelectedStudent(null);
                       }}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                      className={`px-3 py-1 text-xs font-bold rounded-lg cursor-pointer transition-all ${
                         selectedSemester === sem
                           ? "bg-white text-orange-600 shadow-sm"
                           : "text-slate-500 hover:text-slate-800"
@@ -1262,7 +1474,7 @@ export default function AdminDashboard() {
         </header>
 
         {/* Dashboard Content */}
-        <div className="flex-1 overflow-y-auto p-8 space-y-6">
+        <div className="flex-1 overflow-y-auto p-8 space-y-6 select-none">
           {/* Sub-view navigation for students */}
           {currentView === "students" && (
             <div className="flex border-b border-slate-200 gap-4 mb-4 select-none">
@@ -1271,7 +1483,7 @@ export default function AdminDashboard() {
                   setStudentSubView("list");
                   setSearchTerm("");
                 }}
-                className={`pb-3 text-sm font-bold border-b-2 transition-all ${
+                className={`pb-3 text-sm font-bold border-b-2 cursor-pointer transition-all ${
                   studentSubView === "list"
                     ? "border-orange-500 text-orange-600"
                     : "border-transparent text-slate-550 hover:text-slate-850"
@@ -1284,7 +1496,7 @@ export default function AdminDashboard() {
                   setStudentSubView("attendance");
                   setSearchTerm("");
                 }}
-                className={`pb-3 text-sm font-bold border-b-2 transition-all ${
+                className={`pb-3 text-sm font-bold border-b-2 cursor-pointer transition-all ${
                   studentSubView === "attendance"
                     ? "border-orange-500 text-orange-600"
                     : "border-transparent text-slate-550 hover:text-slate-850"
@@ -1297,7 +1509,7 @@ export default function AdminDashboard() {
                   setStudentSubView("timetable");
                   setSearchTerm("");
                 }}
-                className={`pb-3 text-sm font-bold border-b-2 transition-all ${
+                className={`pb-3 text-sm font-bold border-b-2 cursor-pointer transition-all ${
                   studentSubView === "timetable"
                     ? "border-orange-500 text-orange-600"
                     : "border-transparent text-slate-550 hover:text-slate-855"
@@ -1310,7 +1522,7 @@ export default function AdminDashboard() {
 
           {/* Students -> Sub-view list */}
           {currentView === "students" && studentSubView === "list" && (
-            <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="space-y-6 animate-fade-in">
               {/* Search & Filter Header */}
               <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
                 <div className="relative w-full sm:w-80">
@@ -1323,8 +1535,122 @@ export default function AdminDashboard() {
                     className="w-full bg-slate-50 border border-slate-205 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-orange-500"
                   />
                 </div>
-                <div className="text-xs font-bold text-slate-400 uppercase">
-                  Total Records: {filteredAllStudents.length}
+                <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                  <div className="relative">
+                    <button
+                      onClick={() => {
+                        if (!showFilterPopover) {
+                          setTempDept(selectedDept);
+                          setTempClass(selectedClass);
+                        }
+                        setShowFilterPopover(!showFilterPopover);
+                      }}
+                      className={`p-2.5 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                        selectedDept || selectedClass
+                          ? "bg-orange-50 border-orange-200 text-orange-600 shadow-xs"
+                          : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                      }`}
+                      title="Filter by Department & Class"
+                    >
+                      <Filter className="h-4 w-4" />
+                    </button>
+
+                    {showFilterPopover && (
+                      <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 z-20 space-y-3">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                          <span className="text-xs font-bold text-slate-800">Filter Records</span>
+                          {(selectedDept || selectedClass || tempDept || tempClass) && (
+                            <button
+                              onClick={() => {
+                                setTempDept(null);
+                                setTempClass("");
+                                setSelectedDept(null);
+                                setSelectedClass("");
+                                setShowFilterPopover(false);
+                              }}
+                              className="text-[10px] font-bold text-rose-500 hover:underline cursor-pointer"
+                            >
+                              Clear All
+                            </button>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Department</label>
+                          <select
+                            value={tempDept?.id || ""}
+                            onChange={(e) => {
+                              const deptId = e.target.value;
+                              const dept = departments.find(d => d.id === deptId);
+                              setTempDept(dept || null);
+                              setTempClass("");
+                            }}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-bold outline-none cursor-pointer"
+                          >
+                            <option value="">All Departments</option>
+                            {departments.map((d) => (
+                              <option key={d.id} value={d.id}>
+                                {d.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Class</label>
+                          <select
+                            value={tempClass}
+                            onChange={(e) => setTempClass(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-bold outline-none cursor-pointer disabled:cursor-not-allowed"
+                            disabled={!tempDept}
+                          >
+                            <option value="">All Classes</option>
+                            {tempDept?.classes?.map((c) => (
+                              <option key={c} value={c}>
+                                {c}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedDept(tempDept);
+                              setSelectedClass(tempClass);
+                              setShowFilterPopover(false);
+                            }}
+                            className="w-full py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg transition-all cursor-pointer text-center"
+                          >
+                            Apply Filter
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setIsAddingStudent(true);
+                      const defaultDept = departments.length > 0 ? departments[0] : null;
+                      const defaultClass = defaultDept?.classes && defaultDept.classes.length > 0 ? defaultDept.classes[0] : "";
+                      setNewStudent({
+                        id: "",
+                        name: "",
+                        email: "",
+                        class: defaultClass,
+                        department: defaultDept?.id || "",
+                        mentor_id: ""
+                      });
+                    }}
+                    className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer"
+                  >
+                    + Add Student
+                  </button>
+                  <div className="text-xs font-bold text-slate-400 uppercase shrink-0">
+                    Total Records: {filteredAllStudents.length}
+                  </div>
                 </div>
               </div>
 
@@ -1361,12 +1687,21 @@ export default function AdminDashboard() {
                             <td className="p-4">{student.department}</td>
                             <td className="p-4"><span className="px-2.5 py-1 bg-slate-100 text-slate-650 rounded-lg text-xs font-bold">{student.class}</span></td>
                             <td className="p-4 font-mono text-xs">{student.mentor_id || "-"}</td>
-                            <td className="p-4 pr-6 text-right">
+                            <td className="p-4 pr-6 text-right flex justify-end gap-2">
                               <button
-                                onClick={() => setEditingStudent(student)}
+                                onClick={() => {
+                                  setEditingStudent(student);
+                                  setOriginalStudentId(student.id);
+                                }}
                                 className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
                               >
                                 Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteStudent(student.id)}
+                                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                              >
+                                Delete
                               </button>
                             </td>
                           </tr>
@@ -1381,423 +1716,235 @@ export default function AdminDashboard() {
 
           {/* Students -> Sub-view attendance */}
           {currentView === "students" && studentSubView === "attendance" && (
-            <div className="space-y-6 animate-in fade-in duration-200">
-              {/* Info cards */}
-              {selectedClass && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white border border-slate-200/80 p-6 rounded-2xl flex items-center justify-between shadow-sm">
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                        Total Students
-                      </p>
-                      <h3 className="text-3xl font-black text-slate-800 mt-2">
-                        {loadingStudents ? "..." : stats.totalStudents}
-                      </h3>
-                    </div>
-                    <div className="p-4 bg-blue-50 text-blue-500 rounded-xl border border-blue-100">
-                      <Users className="h-6 w-6" />
-                    </div>
-                  </div>
-
-                  <div className="bg-white border border-slate-200/80 p-6 rounded-2xl flex items-center justify-between shadow-sm">
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                        Avg. Attendance Rate
-                      </p>
-                      <h3 className="text-3xl font-black mt-2 bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
-                        {loadingAttendance ? "..." : `${stats.avgPresent}%`}
-                      </h3>
-                    </div>
-                    <div className="p-4 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
-                      <CheckCircle className="h-6 w-6" />
-                    </div>
-                  </div>
-
-                  <div className="bg-white border border-slate-200/80 p-6 rounded-2xl flex items-center justify-between shadow-sm">
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                        Low Attendance Alert
-                      </p>
-                      <h3 className="text-3xl font-black text-rose-500 mt-2">
-                        {loadingAttendance ? "..." : stats.attendanceWarningCount}
-                      </h3>
-                    </div>
-                    <div className="p-4 bg-rose-50 text-rose-500 rounded-xl border border-rose-100">
-                      <XCircle className="h-6 w-6" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Main Grid: Student Attendance List */}
-              {selectedClass ? (
-                <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden flex flex-col shadow-sm">
-                  <div className="p-6 border-b border-slate-100 flex flex-col lg:flex-row gap-4 items-center justify-between bg-slate-50/30">
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
-                      <div className="relative w-full sm:w-64">
-                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                        <input
-                          type="text"
-                          placeholder="Search students..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value.toLowerCase())}
-                          className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-slate-400"
-                        />
-                      </div>
-                      <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80">
-                        <button
-                          onClick={() => setActiveTab("overview")}
-                          className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                            activeTab === "overview"
-                              ? "bg-white text-orange-600 shadow-sm"
-                              : "text-slate-500 hover:text-slate-800"
-                          }`}
-                        >
-                          Semester Stats
-                        </button>
-                        <button
-                          onClick={() => setActiveTab("daily")}
-                          className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                            activeTab === "daily"
-                              ? "bg-white text-orange-600 shadow-sm"
-                              : "text-slate-500 hover:text-slate-800"
-                          }`}
-                        >
-                          Daily Grid ({selectedDate})
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between sm:justify-end gap-4 w-full lg:w-auto shrink-0">
-                      <button
-                        onClick={handleDownloadExcel}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/10 hover:shadow-lg transition-all border border-emerald-500 hover:border-emerald-600 cursor-pointer"
-                      >
-                        <Download className="h-4 w-4" />
-                        Export Excel
-                      </button>
-                      <div className="text-xs text-slate-400 font-bold">
-                        Showing {filteredStudents.length} of {students.length} students
-                      </div>
-                    </div>
-                  </div>
-
-                  {loadingStudents ? (
-                    <div className="p-12 text-center text-slate-400 font-medium">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4" />
-                      Loading student records...
-                    </div>
-                  ) : filteredStudents.length === 0 ? (
-                    <div className="p-12 text-center text-slate-400 font-medium">
-                      No students found.
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      {activeTab === "overview" ? (
-                        <table className="w-full border-collapse text-left">
-                          <thead>
-                            <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider bg-slate-50/50 select-none">
-                              <th onClick={() => handleSort("id")} className="p-4 pl-6 cursor-pointer hover:text-slate-700 transition-colors">
-                                <span className="inline-flex items-center">ID {renderSortIndicator("id")}</span>
-                              </th>
-                              <th onClick={() => handleSort("name")} className="p-4 cursor-pointer hover:text-slate-700 transition-colors">
-                                <span className="inline-flex items-center">Name {renderSortIndicator("name")}</span>
-                              </th>
-                              <th onClick={() => handleSort("present")} className="p-4 text-center cursor-pointer hover:text-slate-700 transition-colors">
-                                <span className="inline-flex items-center justify-center w-full">Present % {renderSortIndicator("present")}</span>
-                              </th>
-                              <th onClick={() => handleSort("od")} className="p-4 text-center cursor-pointer hover:text-slate-700 transition-colors">
-                                <span className="inline-flex items-center justify-center w-full">OD % {renderSortIndicator("od")}</span>
-                              </th>
-                              <th onClick={() => handleSort("absent")} className="p-4 text-center cursor-pointer hover:text-slate-700 transition-colors">
-                                <span className="inline-flex items-center justify-center w-full">Absent % {renderSortIndicator("absent")}</span>
-                              </th>
-                              <th className="p-4 pr-6 text-right">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {filteredStudents.map((student) => {
-                              const p = Math.round(studentAttendance[student.id]?.P ?? 0);
-                              const a = Math.round(studentAttendance[student.id]?.A ?? 0);
-                              const od = Math.round(studentAttendance[student.id]?.OD ?? 0);
-                              return (
-                                <tr key={student.id} className={`group hover:bg-slate-50/40 transition-colors ${selectedStudent?.id === student.id ? "bg-orange-50/20" : ""}`}>
-                                  <td className="p-4 pl-6 font-mono text-xs font-semibold text-slate-500">{student.id}</td>
-                                  <td className="p-4 font-bold text-slate-800 group-hover:text-orange-600 transition-colors">{student.name}</td>
-                                  <td className="p-4 text-center font-bold text-emerald-600">{p}%</td>
-                                  <td className="p-4 text-center font-bold text-blue-600">{od}%</td>
-                                  <td className="p-4 text-center font-bold text-rose-600">{a}%</td>
-                                  <td className="p-4 pr-6 text-right">
-                                    <button onClick={() => setSelectedStudent(student)} className="px-3 py-1.5 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-600 hover:shadow-sm text-xs font-bold rounded-lg transition-all border border-slate-200/80 hover:border-orange-400">
-                                      View History
-                                    </button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      ) : (
-                        <table className="w-full border-collapse text-left">
-                          <thead>
-                            <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider bg-slate-50/50 select-none">
-                              <th onClick={() => handleSort("name")} className="p-4 pl-6 cursor-pointer hover:text-slate-700 transition-colors">
-                                <span className="inline-flex items-center">Name {renderSortIndicator("name")}</span>
-                              </th>
-                              <th className="p-4 text-center">1st Hour</th>
-                              <th className="p-4 text-center">2nd Hour</th>
-                              <th className="p-4 text-center">3rd Hour</th>
-                              <th className="p-4 text-center">4th Hour</th>
-                              <th className="p-4 text-center">5th Hour</th>
-                              <th className="p-4 text-center">6th Hour</th>
-                              <th className="p-4 text-center">7th Hour</th>
-                              <th className="p-4 pr-6 text-right">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {filteredStudents.map((student) => {
-                              const dailyLogs = getAttendanceSummaryForDate(student.id, selectedDate) || [];
-                              const hourlyStatus = Array(7).fill(null);
-                              dailyLogs.forEach((item) => {
-                                if (item.hour >= 1 && item.hour <= 7) {
-                                  hourlyStatus[item.hour - 1] = item;
-                                }
-                              });
-                              return (
-                                <tr key={student.id} className={`group hover:bg-slate-50/40 transition-colors ${selectedStudent?.id === student.id ? "bg-orange-50/20" : ""}`}>
-                                  <td className="p-4 pl-6 font-bold text-slate-800 group-hover:text-orange-600 transition-colors">
-                                    <div>
-                                      <div className="truncate max-w-[200px]">{student.name}</div>
-                                      <div className="text-[10px] font-mono font-semibold text-slate-400 mt-0.5">{student.id}</div>
-                                    </div>
-                                  </td>
-                                  {hourlyStatus.map((item, idx) => {
-                                    const isP = item?.status === "P";
-                                    const isOD = item?.status === "OD";
-                                    return (
-                                      <td key={idx} className="p-4 text-center">
-                                        {item ? (
-                                          <span className={`inline-block px-2 py-1 rounded-lg text-xs font-bold ${
-                                            isP ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
-                                            isOD ? "bg-blue-50 text-blue-600 border border-blue-100" :
-                                            "bg-rose-50 text-rose-600 border border-rose-100"
-                                          }`}>
-                                            {item.status}
-                                          </span>
-                                        ) : "-"}
-                                      </td>
-                                    );
-                                  })}
-                                  <td className="p-4 pr-6 text-right">
-                                    <button onClick={() => setSelectedStudent(student)} className="px-3 py-1.5 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-600 hover:shadow-sm text-xs font-bold rounded-lg transition-all border border-slate-200/80 hover:border-orange-400">
-                                      Logs
-                                    </button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="bg-white border border-slate-200 border-dashed p-24 rounded-2xl text-center text-slate-400 flex flex-col items-center justify-center shadow-sm">
-                  <div className="bg-slate-50 p-5 rounded-full mb-4 border border-slate-100">
-                    <Info className="h-10 w-10 text-slate-400" />
-                  </div>
-                  <h5 className="font-bold text-base text-slate-500">View Class Attendance</h5>
-                  <p className="text-sm text-slate-400 max-w-sm mt-2 leading-relaxed">
-                    Select a department and class from the top dropdowns to view student attendance records.
-                  </p>
-                </div>
-              )}
-            </div>
+            <AttendanceSheetView
+              selectedClass={selectedClass}
+              loadingStudents={loadingStudents}
+              stats={stats}
+              loadingAttendance={loadingAttendance}
+              handleDownloadExcel={handleDownloadExcel}
+              filteredStudents={filteredStudents}
+              students={students}
+              studentAttendance={studentAttendance}
+              selectedStudent={selectedStudent}
+              setSelectedStudent={setSelectedStudent}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              selectedDate={selectedDate}
+              handleSort={handleSort}
+              renderSortIndicator={renderSortIndicator}
+              getAttendanceSummaryForDate={getAttendanceSummaryForDate}
+            />
           )}
 
-          {currentView === "timetable" && (
-            <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                <div>
-                  <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-orange-500" /> Timetable Grid Editor
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1 font-semibold">
-                    Manually create or edit the Monday to Friday (Periods 1 to 7) timetable for {selectedClass || "selected class"} (SEM {selectedSemester})
-                  </p>
+          {currentView === "students" && studentSubView === "timetable" && (
+            <TimetableEditorView
+              selectedClass={selectedClass}
+              selectedSemester={selectedSemester}
+              handleClearTimetable={handleClearTimetable}
+              handleSaveTimetable={handleSaveTimetable}
+              uploadingTimetable={uploadingTimetable}
+              timetableGrid={timetableGrid}
+              handleCellChange={handleCellChange}
+              courseMappings={courseMappings}
+              setCourseMappings={setCourseMappings}
+              faculties={faculties}
+            />
+          )}
+
+          {currentView === "faculty" && (
+            <div className="space-y-6 animate-fade-in">
+              {/* Search & Add Faculty Header */}
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
+                <div className="relative w-full sm:w-80">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search all faculty..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-205 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-orange-500"
+                  />
                 </div>
-                {selectedClass && (
-                  <div className="flex gap-3">
+                <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                  <div className="relative">
                     <button
-                      onClick={handleClearTimetable}
-                      disabled={uploadingTimetable}
-                      className="px-4 py-2 bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-100 text-rose-600 text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                      onClick={() => {
+                        if (!showFilterPopover) {
+                          setTempDept(selectedDept);
+                          setTempClass(selectedClass);
+                        }
+                        setShowFilterPopover(!showFilterPopover);
+                      }}
+                      className={`p-2.5 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                        selectedDept || selectedClass
+                          ? "bg-orange-50 border-orange-200 text-orange-600 shadow-xs"
+                          : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                      }`}
+                      title="Filter by Department & Class"
                     >
-                      Clear Grid
+                      <Filter className="h-4 w-4" />
                     </button>
-                    <button
-                      onClick={handleSaveTimetable}
-                      disabled={uploadingTimetable}
-                      className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer disabled:opacity-50"
-                    >
-                      {uploadingTimetable ? "Saving..." : "Save Timetable"}
-                    </button>
+
+                    {showFilterPopover && (
+                      <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 z-20 space-y-3">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                          <span className="text-xs font-bold text-slate-800">Filter Records</span>
+                          {(selectedDept || selectedClass || tempDept || tempClass) && (
+                            <button
+                              onClick={() => {
+                                setTempDept(null);
+                                setTempClass("");
+                                setSelectedDept(null);
+                                setSelectedClass("");
+                                setShowFilterPopover(false);
+                              }}
+                              className="text-[10px] font-bold text-rose-500 hover:underline cursor-pointer"
+                            >
+                              Clear All
+                            </button>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Department</label>
+                          <select
+                            value={tempDept?.id || ""}
+                            onChange={(e) => {
+                              const deptId = e.target.value;
+                              const dept = departments.find(d => d.id === deptId);
+                              setTempDept(dept || null);
+                              setTempClass("");
+                            }}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-bold outline-none cursor-pointer"
+                          >
+                            <option value="">All Departments</option>
+                            {departments.map((d) => (
+                              <option key={d.id} value={d.id}>
+                                {d.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Class</label>
+                          <select
+                            value={tempClass}
+                            onChange={(e) => setTempClass(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-bold outline-none cursor-pointer disabled:cursor-not-allowed"
+                            disabled={!tempDept}
+                          >
+                            <option value="">All Classes</option>
+                            {tempDept?.classes?.map((c) => (
+                              <option key={c} value={c}>
+                                {c}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedDept(tempDept);
+                              setSelectedClass(tempClass);
+                              setShowFilterPopover(false);
+                            }}
+                            className="w-full py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg transition-all cursor-pointer text-center"
+                          >
+                            Apply Filter
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+
+                  <button
+                    onClick={() => {
+                      setFacultyId("");
+                      setFacultyName("");
+                      setFacultyEmail("");
+                      setFacultyPassword("");
+                      setFacultyClassesInput("");
+                      setEditingFacultyDeptId("");
+                      setAddingFaculty(true);
+                    }}
+                    className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer"
+                  >
+                    + Add Faculty
+                  </button>
+                  <div className="text-xs font-bold text-slate-400 uppercase shrink-0">
+                    Total Records: {filteredAllFaculty.length}
+                  </div>
+                </div>
               </div>
 
-              {!selectedClass ? (
-                <div className="p-12 text-center text-slate-400 font-medium">
-                  <Info className="h-8 w-8 mx-auto mb-3 text-slate-350" />
-                  Please select a department and class from the sidebar first to manage the timetable.
-                </div>
-              ) : (
-                <>
-                  <div className="overflow-x-auto border border-slate-200 rounded-xl bg-slate-50/20 p-4">
-                  <table className="w-full border-collapse text-left bg-white rounded-lg shadow-sm overflow-hidden border border-slate-200">
+              {/* Faculty Table */}
+              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-200 bg-slate-100 text-slate-700 text-xs font-bold uppercase tracking-wider select-none">
-                        <th className="p-4 w-32 border-r border-slate-200">Day</th>
-                        <th className="p-4 text-center border-r border-slate-200">Period 1<br/><span className="text-[10px] text-slate-400 normal-case font-normal">9:00 - 9:50</span></th>
-                        <th className="p-4 text-center border-r border-slate-200">Period 2<br/><span className="text-[10px] text-slate-400 normal-case font-normal">9:50 - 10:40</span></th>
-                        <th className="p-4 text-center border-r border-slate-200">Period 3<br/><span className="text-[10px] text-slate-400 normal-case font-normal">10:55 - 11:45</span></th>
-                        <th className="p-4 text-center border-r border-slate-200">Period 4<br/><span className="text-[10px] text-slate-400 normal-case font-normal">11:45 - 12:35</span></th>
-                        <th className="p-4 text-center border-r border-slate-200">Period 5<br/><span className="text-[10px] text-slate-400 normal-case font-normal">1:25 - 2:15</span></th>
-                        <th className="p-4 text-center border-r border-slate-200">Period 6<br/><span className="text-[10px] text-slate-400 normal-case font-normal">2:15 - 3:05</span></th>
-                        <th className="p-4 text-center">Period 7<br/><span className="text-[10px] text-slate-400 normal-case font-normal">3:20 - 4:10</span></th>
+                      <tr className="bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-400 uppercase">
+                        <th className="p-4 pl-6">Faculty ID</th>
+                        <th className="p-4">Name</th>
+                        <th className="p-4">Email</th>
+                        <th className="p-4">Department</th>
+                        <th className="p-4">Assigned Classes</th>
+                        <th className="p-4 pr-6 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 text-sm">
-                      {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((day) => {
-                        const row = timetableGrid[day] || Array(7).fill("");
-                        return (
-                          <tr key={day} className="hover:bg-slate-50/50">
-                            <td className="p-4 font-bold text-slate-700 bg-slate-50 border-r border-slate-200 uppercase text-xs">
-                              {day}
+                    <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-600">
+                      {loadingFaculties ? (
+                        <tr>
+                          <td colSpan={6} className="text-center py-8 text-slate-400 font-bold">Loading faculty profiles...</td>
+                        </tr>
+                      ) : filteredAllFaculty.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="text-center py-8 text-slate-400 font-bold">No faculty members found.</td>
+                        </tr>
+                      ) : (
+                        filteredAllFaculty.map((fac) => (
+                          <tr key={fac.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="p-4 pl-6 font-mono text-xs text-slate-800">{fac.id}</td>
+                            <td className="p-4 text-slate-800 font-bold">{fac.name}</td>
+                            <td className="p-4 text-slate-500 font-medium">{fac.email}</td>
+                            <td className="p-4">{fac.department}</td>
+                            <td className="p-4">
+                              <div className="flex flex-wrap gap-1">
+                                {(fac.classes || []).map((cls: string) => (
+                                  <span key={cls} className="px-2 py-0.5 bg-slate-100 text-slate-650 rounded text-[10px] font-bold">
+                                    {cls}
+                                  </span>
+                                ))}
+                                {(fac.classes || []).length === 0 && <span className="text-xs text-slate-400 italic">None</span>}
+                              </div>
                             </td>
-                            {Array(7).fill(0).map((_, idx) => (
-                              <td key={idx} className="p-2 border-r border-slate-200">
-                                <input
-                                  type="text"
-                                  value={row[idx] || ""}
-                                  placeholder="e.g. CNS"
-                                  onChange={(e) => handleCellChange(day, idx, e.target.value)}
-                                  className="w-full text-center bg-transparent border-0 border-b border-transparent focus:border-orange-500 outline-none text-xs font-bold text-slate-800 p-1 placeholder:text-slate-350"
-                                />
-                              </td>
-                            ))}
+                            <td className="p-4 pr-6 text-right flex justify-end gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingFaculty(fac);
+                                }}
+                                className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteFaculty(fac.id)}
+                                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                              >
+                                Delete
+                              </button>
+                            </td>
                           </tr>
-                        );
-                      })}
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
-
-                {/* Course Details & Faculty Mapping Editor */}
-                <div className="border border-slate-200 rounded-xl bg-slate-50/20 p-6 space-y-4 mt-6">
-                  <div className="flex items-center justify-between border-b border-slate-150 pb-3">
-                    <div>
-                      <h4 className="font-bold text-sm text-slate-800">Course & Faculty Mapping</h4>
-                      <p className="text-[11px] text-slate-400 font-semibold">Map abbreviations used in the grid above to their full names and handling faculty members.</p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setCourseMappings(prev => [
-                          ...prev,
-                          { abbreviation: "", name: "", facultyId: "", facultyName: "" }
-                        ]);
-                      }}
-                      className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-600 text-xs font-bold rounded-lg transition-all cursor-pointer"
-                    >
-                      + Add Course Map
-                    </button>
-                  </div>
-
-                  {courseMappings.length === 0 ? (
-                    <p className="text-xs text-slate-400 italic text-center py-4">No course mappings configured. Click "+ Add Course Map" to map abbreviations.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {courseMappings.map((map, index) => (
-                        <div key={index} className="flex gap-4 items-center bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
-                          <div className="w-1/4">
-                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Abbreviation *</label>
-                            <input
-                              type="text"
-                              value={map.abbreviation}
-                              placeholder="e.g. CNS"
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setCourseMappings(prev => {
-                                  const updated = [...prev];
-                                  updated[index] = { ...updated[index], abbreviation: val };
-                                  return updated;
-                                });
-                              }}
-                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-bold outline-none focus:border-orange-500"
-                              required
-                            />
-                          </div>
-
-                          <div className="w-1/3">
-                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Course Name *</label>
-                            <input
-                              type="text"
-                              value={map.name}
-                              placeholder="e.g. Cryptography and Network Security"
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setCourseMappings(prev => {
-                                  const updated = [...prev];
-                                  updated[index] = { ...updated[index], name: val };
-                                  return updated;
-                                });
-                              }}
-                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-bold outline-none focus:border-orange-500"
-                              required
-                            />
-                          </div>
-
-                          <div className="flex-1">
-                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Handling Faculty Staff *</label>
-                            <select
-                              value={map.facultyId}
-                              onChange={(e) => {
-                                const fId = e.target.value;
-                                const selectedFac = faculties.find(f => f.id === fId);
-                                const fName = selectedFac ? selectedFac.name : "";
-                                setCourseMappings(prev => {
-                                  const updated = [...prev];
-                                  updated[index] = { ...updated[index], facultyId: fId, facultyName: fName };
-                                  return updated;
-                                });
-                              }}
-                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-bold outline-none focus:border-orange-500"
-                              required
-                            >
-                              <option value="">-- Select Faculty --</option>
-                              {faculties.map((fac) => (
-                                <option key={fac.id} value={fac.id}>
-                                  {fac.name} ({fac.email})
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <button
-                            onClick={() => {
-                              setCourseMappings(prev => prev.filter((_, i) => i !== index));
-                            }}
-                            className="p-2 mt-4 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-lg text-rose-500 transition-all cursor-pointer"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                </>
-              )}
+              </div>
             </div>
           )}
         </div>
@@ -1906,6 +2053,694 @@ export default function AdminDashboard() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Student Modal */}
+      {editingStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-6 border-b border-slate-100 bg-slate-50/20 flex items-start justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Edit Student Profile
+                </span>
+                <h4 className="text-lg font-bold text-slate-800 mt-1">
+                  {editingStudent.name}
+                </h4>
+                <p className="text-xs text-slate-450 font-mono mt-0.5 font-semibold">
+                  ID: {editingStudent.id}
+                </p>
+              </div>
+              <button
+                onClick={() => setEditingStudent(null)}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-250 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleUpdateStudent} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Student ID / Roll No.</label>
+                <input
+                  type="text"
+                  value={editingStudent.id}
+                  onChange={(e) => setEditingStudent({ ...editingStudent, id: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-mono font-bold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={editingStudent.name}
+                  onChange={(e) => setEditingStudent({ ...editingStudent, name: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Email Address</label>
+                <input
+                  type="email"
+                  value={editingStudent.email}
+                  onChange={(e) => setEditingStudent({ ...editingStudent, email: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Department</label>
+                  <select
+                    value={editingStudent.department}
+                    onChange={(e) => {
+                      const deptId = e.target.value;
+                      const deptObj = departments.find((d) => d.id === deptId);
+                      const defaultClass = deptObj?.classes && deptObj.classes.length > 0 ? deptObj.classes[0] : "";
+                      setEditingStudent({
+                        ...editingStudent,
+                        department: deptId,
+                        class: defaultClass,
+                      });
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500"
+                    required
+                  >
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Class</label>
+                  <select
+                    value={editingStudent.class}
+                    onChange={(e) => setEditingStudent({ ...editingStudent, class: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500"
+                    required
+                  >
+                    {departments
+                      .find((d) => d.id === editingStudent.department)
+                      ?.classes?.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Mentor ID</label>
+                <input
+                  type="text"
+                  value={editingStudent.mentor_id || ""}
+                  onChange={(e) => setEditingStudent({ ...editingStudent, mentor_id: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-mono"
+                  placeholder="e.g. FAC123"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingStudent(null)}
+                  disabled={savingStudent}
+                  className="px-4 py-2 border border-slate-200 text-slate-500 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingStudent}
+                  className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {savingStudent ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Department Modal */}
+      {isAddingDept && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-6 border-b border-slate-100 bg-slate-50/20 flex items-start justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Add New Department
+                </span>
+                <h4 className="text-lg font-bold text-slate-800 mt-1">
+                  New Department Details
+                </h4>
+              </div>
+              <button
+                onClick={() => setIsAddingDept(false)}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-250 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleCreateDept} className="flex-1 flex flex-col min-h-0">
+              <div className="p-6 space-y-4 overflow-y-auto">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
+                    Department Code/ID (e.g. CSE, ECE)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newDeptId}
+                    onChange={(e) => setNewDeptId(e.target.value)}
+                    placeholder="e.g. CSE"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-500 font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
+                    Department Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newDeptName}
+                    onChange={(e) => setNewDeptName(e.target.value)}
+                    placeholder="e.g. Computer Science & Engineering"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-500 font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingDept(false)}
+                  className="px-4 py-2 border border-slate-200 text-slate-500 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingDept}
+                  className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {savingDept ? "Adding..." : "Add Department"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Class Modal */}
+      {isAddingClass && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-6 border-b border-slate-100 bg-slate-50/20 flex items-start justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Add New Class
+                </span>
+                <h4 className="text-lg font-bold text-slate-800 mt-1">
+                  New Class Details
+                </h4>
+              </div>
+              <button
+                onClick={() => setIsAddingClass(false)}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-250 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleCreateClass} className="flex-1 flex flex-col min-h-0">
+              <div className="p-6 space-y-4 overflow-y-auto">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
+                    Select Department
+                  </label>
+                  <select
+                    value={targetDeptId}
+                    onChange={(e) => setTargetDeptId(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-500 font-bold cursor-pointer"
+                  >
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} ({d.id})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
+                    Class Name/ID
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newClassName}
+                    onChange={(e) => setNewClassName(e.target.value)}
+                    placeholder="e.g. CSE-A, CSE-B"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-500 font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingClass(false)}
+                  className="px-4 py-2 border border-slate-200 text-slate-500 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingClass}
+                  className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {savingClass ? "Adding..." : "Add Class"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Student Modal */}
+      {isAddingStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-6 border-b border-slate-100 bg-slate-50/20 flex items-start justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Add New Student
+                </span>
+                <h4 className="text-lg font-bold text-slate-800 mt-1">
+                  New Student Profile
+                </h4>
+              </div>
+              <button
+                onClick={() => setIsAddingStudent(false)}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-250 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleCreateStudent} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Student ID / Roll No. *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 21CS001"
+                  value={newStudent.id || ""}
+                  onChange={(e) => setNewStudent({ ...newStudent, id: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-mono font-bold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Full Name *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. John Doe"
+                  value={newStudent.name || ""}
+                  onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Email Address *</label>
+                <input
+                  type="email"
+                  placeholder="e.g. john.doe@college.edu"
+                  value={newStudent.email || ""}
+                  onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Department *</label>
+                  <select
+                    value={newStudent.department || ""}
+                    onChange={(e) => {
+                      const deptId = e.target.value;
+                      const deptObj = departments.find((d) => d.id === deptId);
+                      const defaultClass = deptObj?.classes && deptObj.classes.length > 0 ? deptObj.classes[0] : "";
+                      setNewStudent({
+                        ...newStudent,
+                        department: deptId,
+                        class: defaultClass,
+                      });
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500 cursor-pointer"
+                    required
+                  >
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Class *</label>
+                  <select
+                    value={newStudent.class || ""}
+                    onChange={(e) => setNewStudent({ ...newStudent, class: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500 cursor-pointer"
+                    required
+                  >
+                    {departments
+                      .find((d) => d.id === newStudent.department)
+                      ?.classes?.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Mentor ID</label>
+                <input
+                  type="text"
+                  placeholder="e.g. FAC123"
+                  value={newStudent.mentor_id || ""}
+                  onChange={(e) => setNewStudent({ ...newStudent, mentor_id: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-mono"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingStudent(false)}
+                  disabled={savingStudent}
+                  className="px-4 py-2 border border-slate-200 text-slate-500 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingStudent}
+                  className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {savingStudent ? "Adding..." : "Add Student"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Faculty Modal */}
+      {addingFaculty && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-6 border-b border-slate-100 bg-slate-50/20 flex items-start justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Add New Faculty
+                </span>
+                <h4 className="text-lg font-bold text-slate-800 mt-1">
+                  New Faculty Profile
+                </h4>
+              </div>
+              <button
+                onClick={() => setAddingFaculty(false)}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-250 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={async (e) => {
+              await handleAddFaculty(e);
+              setAddingFaculty(false);
+            }} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Faculty ID *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. FAC001"
+                  value={facultyId}
+                  onChange={(e) => setFacultyId(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-mono font-bold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Full Name *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Dr. Jane Smith"
+                  value={facultyName}
+                  onChange={(e) => setFacultyName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Email Address *</label>
+                <input
+                  type="email"
+                  placeholder="e.g. jane.smith@college.edu"
+                  value={facultyEmail}
+                  onChange={(e) => setFacultyEmail(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Password</label>
+                <input
+                  type="password"
+                  placeholder="Leave empty for default 'faculty123'"
+                  value={facultyPassword}
+                  onChange={(e) => setFacultyPassword(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Department *</label>
+                  <select
+                    value={editingFacultyDeptId}
+                    onChange={(e) => setEditingFacultyDeptId(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500"
+                    required
+                  >
+                    <option value="">-- Select Dept --</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Assigned Classes</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. CSE-A, CSE-B"
+                    value={facultyClassesInput}
+                    onChange={(e) => setFacultyClassesInput(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Comma-separated list</p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setAddingFaculty(false)}
+                  className="px-4 py-2 border border-slate-200 text-slate-500 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer"
+                >
+                  Add Faculty
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Faculty Modal */}
+      {editingFaculty && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-6 border-b border-slate-100 bg-slate-50/20 flex items-start justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Edit Faculty Profile
+                </span>
+                <h4 className="text-lg font-bold text-slate-800 mt-1">
+                  {editingFaculty.name}
+                </h4>
+                <p className="text-xs text-slate-450 font-mono mt-0.5 font-semibold">
+                  ID: {editingFaculty.id}
+                </p>
+              </div>
+              <button
+                onClick={() => setEditingFaculty(null)}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-250 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleUpdateFaculty} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Full Name *</label>
+                <input
+                  type="text"
+                  value={editingFaculty.name}
+                  onChange={(e) => setEditingFaculty({ ...editingFaculty, name: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Email Address *</label>
+                <input
+                  type="email"
+                  value={editingFaculty.email}
+                  onChange={(e) => setEditingFaculty({ ...editingFaculty, email: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Password</label>
+                <input
+                  type="password"
+                  placeholder="Enter new password or leave blank"
+                  value={editingFaculty.password || ""}
+                  onChange={(e) => setEditingFaculty({ ...editingFaculty, password: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Department *</label>
+                  <select
+                    value={editingFaculty.department}
+                    onChange={(e) => setEditingFaculty({ ...editingFaculty, department: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500"
+                    required
+                  >
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Assigned Classes</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. CSE-A, CSE-B"
+                    value={Array.isArray(editingFaculty.classes) ? editingFaculty.classes.join(", ") : ""}
+                    onChange={(e) => {
+                      const arr = e.target.value.split(",").map(c => c.trim()).filter(c => c.length > 0);
+                      setEditingFaculty({ ...editingFaculty, classes: arr });
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Comma-separated list</p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingFaculty(null)}
+                  className="px-4 py-2 border border-slate-200 text-slate-500 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Success Popup Modal */}
+      {successMessage && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-sm p-6 text-center animate-in zoom-in-95 duration-200">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-emerald-50 border border-emerald-100 mb-4">
+              <CheckCircle className="h-6 w-6 text-emerald-600" />
+            </div>
+            <h3 className="text-base font-extrabold text-slate-800">Success</h3>
+            <p className="text-xs text-slate-500 font-semibold mt-2">{successMessage}</p>
+            <button
+              onClick={() => setSuccessMessage(null)}
+              className="mt-5 w-full py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer"
+            >
+              Okay
+            </button>
           </div>
         </div>
       )}
