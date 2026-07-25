@@ -37,7 +37,8 @@ import {
   Download,
   X,
   Filter,
-  LogOut
+  LogOut,
+  AlertTriangle
 } from "lucide-react";
 
 interface Department {
@@ -93,7 +94,16 @@ export default function AdminDashboard() {
   const [originalStudentId, setOriginalStudentId] = useState<string>("");
   const [savingStudent, setSavingStudent] = useState<boolean>(false);
   const [editingFaculty, setEditingFaculty] = useState<any | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [popupConfig, setPopupConfig] = useState<{ type: "success" | "error" | "warning"; title: string; message: string } | null>(null);
+  const [confirmConfig, setConfirmConfig] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
+
+  const showPopup = (type: "success" | "error" | "warning", title: string, message: string) => {
+    setPopupConfig({ type, title, message });
+  };
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void) => {
+    setConfirmConfig({ title, message, onConfirm });
+  };
 
   // Adding student states
   const [isAddingStudent, setIsAddingStudent] = useState<boolean>(false);
@@ -110,6 +120,7 @@ export default function AdminDashboard() {
   const [tempClass, setTempClass] = useState<string>("");
   const [filterDept, setFilterDept] = useState<Department | null>(null);
   const [filterClass, setFilterClass] = useState<string>("");
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState<boolean>(false);
 
   // Add Dept & Class state variables
   const [isAddingDept, setIsAddingDept] = useState(false);
@@ -372,10 +383,10 @@ export default function AdminDashboard() {
       setIsAddingDept(false);
       setNewDeptId("");
       setNewDeptName("");
-      alert("Department created successfully!");
+      showPopup("success", "Success", "Department created successfully!");
     } catch (err: any) {
       console.error(err);
-      alert("Error creating department: " + err.message);
+      showPopup("error", "Error", "Error creating department: " + err.message);
     } finally {
       setSavingDept(false);
     }
@@ -393,7 +404,7 @@ export default function AdminDashboard() {
       const classNameClean = newClassName.trim();
       const updatedClasses = [...(dept.classes || [])];
       if (updatedClasses.includes(classNameClean)) {
-        alert("Class already exists in this department!");
+        showPopup("warning", "Warning", "Class already exists in this department!");
         setSavingClass(false);
         return;
       }
@@ -429,10 +440,10 @@ export default function AdminDashboard() {
       setIsAddingClass(false);
       setNewClassName("");
       setTargetDeptId("");
-      alert("Class created successfully!");
+      showPopup("success", "Success", "Class created successfully!");
     } catch (err: any) {
       console.error(err);
-      alert("Error creating class: " + err.message);
+      showPopup("error", "Error", "Error creating class: " + err.message);
     } finally {
       setSavingClass(false);
     }
@@ -506,12 +517,12 @@ export default function AdminDashboard() {
         });
       }
 
-      setSuccessMessage("Student profile updated successfully!");
+      showPopup("success", "Success", "Student profile updated successfully!");
       setEditingStudent(null);
       fetchAllStudents();
     } catch (err: any) {
       console.error("Error updating student:", err);
-      alert("Failed to update student: " + err.message);
+      showPopup("error", "Error", "Failed to update student: " + err.message);
     } finally {
       setSavingStudent(false);
     }
@@ -520,7 +531,7 @@ export default function AdminDashboard() {
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStudent.id || !newStudent.name || !newStudent.email || !newStudent.department || !newStudent.class) {
-      alert("Please fill in all required fields.");
+      showPopup("warning", "Warning", "Please fill in all required fields.");
       return;
     }
     try {
@@ -528,7 +539,7 @@ export default function AdminDashboard() {
       const studentDocRef = doc(db, "colleges", "students", "all_students", newStudent.id);
       const studentSnap = await getDoc(studentDocRef);
       if (studentSnap.exists()) {
-        alert(`A student with ID ${newStudent.id} already exists!`);
+        showPopup("warning", "Warning", `A student with ID ${newStudent.id} already exists!`);
         setSavingStudent(false);
         return;
       }
@@ -541,7 +552,7 @@ export default function AdminDashboard() {
         mentor_id: newStudent.mentor_id || "",
       });
 
-      setSuccessMessage("Student added successfully!");
+      showPopup("success", "Success", "Student added successfully!");
       setIsAddingStudent(false);
       setNewStudent({
         id: "",
@@ -554,30 +565,35 @@ export default function AdminDashboard() {
       fetchAllStudents();
     } catch (err: any) {
       console.error("Error creating student:", err);
-      alert("Failed to add student: " + err.message);
+      showPopup("error", "Error", "Failed to add student: " + err.message);
     } finally {
       setSavingStudent(false);
     }
   };
 
   const handleDeleteStudent = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this student profile?")) return;
-    try {
-      const studentDocRef = doc(db, "colleges", "students", "all_students", id);
-      await deleteDoc(studentDocRef);
-      
-      const attendanceRef = collection(db, "colleges", "students", "all_students", id, "attendance");
-      const attendanceSnap = await getDocs(attendanceRef);
-      for (const docSnap of attendanceSnap.docs) {
-        await deleteDoc(docSnap.ref);
-      }
+    showConfirm(
+      "Delete Student",
+      "Are you sure you want to delete this student profile?",
+      async () => {
+        try {
+          const studentDocRef = doc(db, "colleges", "students", "all_students", id);
+          await deleteDoc(studentDocRef);
 
-      alert("Student profile deleted successfully.");
-      fetchAllStudents();
-    } catch (err: any) {
-      console.error("Error deleting student:", err);
-      alert("Failed to delete student: " + err.message);
-    }
+          const attendanceRef = collection(db, "colleges", "students", "all_students", id, "attendance");
+          const attendanceSnap = await getDocs(attendanceRef);
+          for (const docSnap of attendanceSnap.docs) {
+            await deleteDoc(docSnap.ref);
+          }
+
+          showPopup("success", "Success", "Student profile deleted successfully.");
+          fetchAllStudents();
+        } catch (err: any) {
+          console.error("Error deleting student:", err);
+          showPopup("error", "Error", "Failed to delete student: " + err.message);
+        }
+      }
+    );
   };
 
   // Faculty Edit Handler
@@ -593,12 +609,12 @@ export default function AdminDashboard() {
         classes: editingFaculty.classes,
         password: editingFaculty.password || "faculty123",
       });
-      alert("Faculty updated successfully!");
+      showPopup("success", "Success", "Faculty updated successfully!");
       setEditingFaculty(null);
       fetchFaculties();
     } catch (err: any) {
       console.error("Error updating faculty:", err);
-      alert("Failed to update faculty: " + err.message);
+      showPopup("error", "Error", "Failed to update faculty: " + err.message);
     }
   };
 
@@ -668,7 +684,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     const targetDeptId = editingFacultyDeptId || (selectedDept?.id || "");
     if (!facultyId || !facultyName || !facultyEmail || !targetDeptId) {
-      alert("Please fill in all required fields (ID, Name, Email, Department).");
+      showPopup("warning", "Warning", "Please fill in all required fields (ID, Name, Email, Department).");
       return;
     }
     try {
@@ -691,7 +707,7 @@ export default function AdminDashboard() {
       };
 
       await setDoc(docRef, facultyData);
-      alert("Faculty member added successfully!");
+      showPopup("success", "Success", "Faculty member added successfully!");
       
       setFacultyId("");
       setFacultyName("");
@@ -703,23 +719,28 @@ export default function AdminDashboard() {
       fetchFaculties();
     } catch (err: any) {
       console.error("Error adding faculty:", err);
-      alert("Error adding faculty: " + err.message);
+      showPopup("error", "Error", "Error adding faculty: " + err.message);
     } finally {
       setAddingFaculty(false);
     }
   };
 
   const handleDeleteFaculty = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this faculty member?")) return;
-    try {
-      const docRef = doc(db, "colleges", "faculties", "all_faculties", id);
-      await deleteDoc(docRef);
-      alert("Faculty member deleted.");
-      fetchFaculties();
-    } catch (err: any) {
-      console.error("Error deleting faculty:", err);
-      alert("Error deleting faculty: " + err.message);
-    }
+    showConfirm(
+      "Delete Faculty",
+      "Are you sure you want to delete this faculty member?",
+      async () => {
+        try {
+          const docRef = doc(db, "colleges", "faculties", "all_faculties", id);
+          await deleteDoc(docRef);
+          showPopup("success", "Success", "Faculty member deleted.");
+          fetchFaculties();
+        } catch (err: any) {
+          console.error("Error deleting faculty:", err);
+          showPopup("error", "Error", "Error deleting faculty: " + err.message);
+        }
+      }
+    );
   };
 
   const handleSaveTimetable = async () => {
@@ -1347,7 +1368,7 @@ export default function AdminDashboard() {
         {/* Sticky Logout Footer */}
         <div className="p-4 border-t border-slate-100 bg-slate-50/50">
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutConfirm(true)}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-100 rounded-xl text-rose-600 text-sm font-bold transition-all cursor-pointer"
           >
             <LogOut className="h-4 w-4" />
@@ -2724,21 +2745,93 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Custom Success Popup Modal */}
-      {successMessage && (
+      {/* Custom Popup Modal */}
+      {popupConfig && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
           <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-sm p-6 text-center animate-in zoom-in-95 duration-200">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-emerald-50 border border-emerald-100 mb-4">
-              <CheckCircle className="h-6 w-6 text-emerald-600" />
-            </div>
-            <h3 className="text-base font-extrabold text-slate-800">Success</h3>
-            <p className="text-xs text-slate-500 font-semibold mt-2">{successMessage}</p>
+            {popupConfig.type === "success" && (
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-emerald-50 border border-emerald-100 mb-4">
+                <CheckCircle className="h-6 w-6 text-emerald-600" />
+              </div>
+            )}
+            {popupConfig.type === "error" && (
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-rose-50 border border-rose-100 mb-4">
+                <XCircle className="h-6 w-6 text-rose-600" />
+              </div>
+            )}
+            {popupConfig.type === "warning" && (
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-amber-50 border border-amber-100 mb-4">
+                <AlertTriangle className="h-6 w-6 text-amber-600" />
+              </div>
+            )}
+            <h3 className="text-base font-extrabold text-slate-800">{popupConfig.title}</h3>
+            <p className="text-xs text-slate-500 font-semibold mt-2">{popupConfig.message}</p>
             <button
-              onClick={() => setSuccessMessage(null)}
+              onClick={() => setPopupConfig(null)}
               className="mt-5 w-full py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer"
             >
               Okay
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-sm p-6 text-center animate-in zoom-in-95 duration-200">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-rose-50 border border-rose-100 mb-4">
+              <LogOut className="h-6 w-6 text-rose-500" />
+            </div>
+            <h3 className="text-base font-extrabold text-slate-800">Confirm Logout</h3>
+            <p className="text-xs text-slate-500 font-semibold mt-2">Are you sure you want to log out of the admin panel?</p>
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="w-1/2 py-2 border border-slate-200 text-slate-550 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowLogoutConfirm(false);
+                  handleLogout();
+                }}
+                className="w-1/2 py-2 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-xl shadow-md shadow-rose-500/10 transition-all cursor-pointer"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Generic Confirm Dialog Modal */}
+      {confirmConfig && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-sm p-6 text-center animate-in zoom-in-95 duration-200">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-amber-50 border border-amber-100 mb-4">
+              <AlertTriangle className="h-6 w-6 text-amber-500" />
+            </div>
+            <h3 className="text-base font-extrabold text-slate-800">{confirmConfig.title}</h3>
+            <p className="text-xs text-slate-500 font-semibold mt-2">{confirmConfig.message}</p>
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setConfirmConfig(null)}
+                className="w-1/2 py-2 border border-slate-200 text-slate-550 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmConfig(null);
+                  confirmConfig.onConfirm();
+                }}
+                className="w-1/2 py-2 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-xl shadow-md shadow-rose-500/10 transition-all cursor-pointer"
+              >
+                Confirm
+              </button>
+            </div>
           </div>
         </div>
       )}
