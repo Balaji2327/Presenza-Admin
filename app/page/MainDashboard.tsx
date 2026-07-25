@@ -18,6 +18,7 @@ import {
   setDoc,
   deleteDoc,
   updateDoc,
+  addDoc,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
@@ -38,7 +39,9 @@ import {
   X,
   Filter,
   LogOut,
-  AlertTriangle
+  AlertTriangle,
+  Newspaper,
+  Trash2
 } from "lucide-react";
 
 interface Department {
@@ -56,6 +59,13 @@ interface Student {
   mentor_id?: string;
 }
 
+interface NewsItem {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: number;
+}
+
 interface AttendanceRecord {
   P?: number;
   A?: number;
@@ -66,9 +76,16 @@ interface AttendanceRecord {
 export default function AdminDashboard() {
   // Navigation states
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [currentView, setCurrentView] = useState<"students" | "faculty">("students");
+  const [currentView, setCurrentView] = useState<"students" | "faculty" | "news">("students");
   const [studentSubView, setStudentSubView] = useState<"list" | "attendance" | "timetable">("list");
   const [expandedDepts, setExpandedDepts] = useState<Set<string>>(new Set());
+
+  // News states
+  const [newsList, setNewsList] = useState<NewsItem[]>([]);
+  const [loadingNews, setLoadingNews] = useState<boolean>(false);
+  const [newsTitle, setNewsTitle] = useState("");
+  const [newsContent, setNewsContent] = useState("");
+  const [addingNews, setAddingNews] = useState(false);
 
   // Auth states
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
@@ -238,6 +255,29 @@ export default function AdminDashboard() {
       active = false;
       clearTimeout(timer);
     };
+  }, []);
+
+  // Fetch News
+  useEffect(() => {
+    async function fetchNews() {
+      try {
+        setLoadingNews(true);
+        const colRef = collection(db, "news");
+        const snapshot = await getDocs(colRef);
+        const newsData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as NewsItem[];
+        // Sort by date descending
+        newsData.sort((a, b) => b.createdAt - a.createdAt);
+        setNewsList(newsData);
+      } catch (err: any) {
+        console.error("Error fetching news:", err);
+      } finally {
+        setLoadingNews(false);
+      }
+    }
+    fetchNews();
   }, []);
 
   // Fetch Students and their attendance when selectedClass or selectedSemester changes
@@ -447,6 +487,66 @@ export default function AdminDashboard() {
     } finally {
       setSavingClass(false);
     }
+  };
+
+  const handleDeleteDept = async (deptId: string) => {
+    showConfirm(
+      "Delete Department",
+      "Are you sure you want to delete this department? All its classes will also be deleted.",
+      async () => {
+        try {
+          const deptDocRef = doc(db, "colleges", "departments", "all_departments", deptId);
+          await deleteDoc(deptDocRef);
+          
+          setDepartments(prev => prev.filter(d => d.id !== deptId));
+          if (selectedDept?.id === deptId) {
+            setSelectedDept(null);
+            setSelectedClass("");
+          }
+          showPopup("success", "Success", "Department deleted successfully!");
+        } catch (err: any) {
+          console.error("Error deleting department:", err);
+          showPopup("error", "Error", "Failed to delete department: " + err.message);
+        }
+      }
+    );
+  };
+
+  const handleDeleteClass = async (deptId: string, className: string) => {
+    showConfirm(
+      "Delete Class",
+      "Are you sure you want to delete this class?",
+      async () => {
+        try {
+          // 1. Remove from department's classes array
+          const dept = departments.find(d => d.id === deptId);
+          if (dept) {
+            const updatedClasses = (dept.classes || []).filter(c => c !== className);
+            const deptDocRef = doc(db, "colleges", "departments", "all_departments", deptId);
+            await updateDoc(deptDocRef, { classes: updatedClasses });
+            
+            setDepartments(prev => prev.map(d => {
+              if (d.id === deptId) {
+                return { ...d, classes: updatedClasses };
+              }
+              return d;
+            }));
+          }
+
+          // 2. Delete class document
+          const classDocRef = doc(db, "colleges", "departments", "all_departments", deptId, "clasees", className);
+          await deleteDoc(classDocRef);
+          
+          if (selectedClass === className && selectedDept?.id === deptId) {
+            setSelectedClass("");
+          }
+          showPopup("success", "Success", "Class deleted successfully!");
+        } catch (err: any) {
+          console.error("Error deleting class:", err);
+          showPopup("error", "Error", "Failed to delete class: " + err.message);
+        }
+      }
+    );
   };
 
   // Fetch data on login status
@@ -1136,6 +1236,50 @@ export default function AdminDashboard() {
     localStorage.removeItem("adminLoggedIn");
   };
 
+  const handleAddNews = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsTitle.trim() || !newsContent.trim()) {
+      showPopup("warning", "Missing Fields", "Please enter both title and content for the news.");
+      return;
+    }
+    try {
+      setAddingNews(true);
+      const docRef = await addDoc(collection(db, "news"), {
+        title: newsTitle.trim(),
+        content: newsContent.trim(),
+        createdAt: Date.now()
+      });
+      const newNewsItem: NewsItem = {
+        id: docRef.id,
+        title: newsTitle.trim(),
+        content: newsContent.trim(),
+        createdAt: Date.now()
+      };
+      setNewsList([newNewsItem, ...newsList]);
+      setNewsTitle("");
+      setNewsContent("");
+      showPopup("success", "News Added", "News item successfully added.");
+    } catch (err: any) {
+      console.error("Error adding news:", err);
+      showPopup("error", "Failed to Add News", err.message);
+    } finally {
+      setAddingNews(false);
+    }
+  };
+
+  const handleDeleteNews = async (id: string) => {
+    showConfirm("Delete News", "Are you sure you want to delete this news item?", async () => {
+      try {
+        await deleteDoc(doc(db, "news", id));
+        setNewsList(newsList.filter(item => item.id !== id));
+        showPopup("success", "News Deleted", "News item successfully deleted.");
+      } catch (err: any) {
+        console.error("Error deleting news:", err);
+        showPopup("error", "Failed to Delete News", err.message);
+      }
+    });
+  };
+
   if (checkingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans">
@@ -1250,33 +1394,40 @@ export default function AdminDashboard() {
                 return (
                   <div key={dept.id}>
                     {/* Dept row */}
-                    <button
-                      onClick={() => {
-                        setExpandedDepts(prev => {
-                          const next = new Set(prev);
-                          if (next.has(dept.id)) next.delete(dept.id);
-                          else next.add(dept.id);
-                          return next;
-                        });
-                        setSelectedDept(dept);
-                        setSelectedClass("");
-                      }}
-                      className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all ${
-                        isActiveDept
-                          ? "bg-orange-50 text-orange-600 border border-orange-100"
-                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <Layers className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{dept.name}</span>
-                      </div>
-                      <ChevronRight
-                        className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
-                          isOpen ? "rotate-90 text-orange-500" : "text-slate-400"
-                        }`}
-                      />
-                    </button>
+                    <div className={`flex items-center gap-1 pr-2 rounded-xl transition-all ${isActiveDept ? "bg-orange-50 border border-orange-100" : "hover:bg-slate-50 border border-transparent"}`}>
+                      <button
+                        onClick={() => {
+                          setExpandedDepts(prev => {
+                            const next = new Set(prev);
+                            if (next.has(dept.id)) next.delete(dept.id);
+                            else next.add(dept.id);
+                            return next;
+                          });
+                          setSelectedDept(dept);
+                          setSelectedClass("");
+                          setCurrentView("students");
+                          setStudentSubView("attendance");
+                        }}
+                        className={`flex-1 flex items-center justify-between gap-2 px-3 py-2.5 text-xs font-bold cursor-pointer outline-none ${isActiveDept ? "text-orange-600" : "text-slate-600"}`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Layers className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{dept.name}</span>
+                        </div>
+                        <ChevronRight
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
+                            isOpen ? "rotate-90 text-orange-500" : "text-slate-400"
+                          }`}
+                        />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteDept(dept.id)}
+                        className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                        title="Delete Department"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
 
                     {/* Class list (collapsible) */}
                     {isOpen && (
@@ -1285,26 +1436,30 @@ export default function AdminDashboard() {
                           dept.classes.map((cls) => {
                             const isActiveClass = selectedClass === cls && isActiveDept;
                             return (
-                              <button
-                                key={cls}
-                                onClick={() => {
-                                  setSelectedDept(dept);
-                                  setSelectedClass(cls);
-                                  setSelectedStudent(null);
-                                  setCurrentView("students");
-                                  setStudentSubView("attendance");
-                                }}
-                                className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-bold cursor-pointer transition-all ${
-                                  isActiveClass
-                                    ? "bg-orange-500 text-white shadow-sm shadow-orange-500/20"
-                                    : "text-slate-500 hover:bg-orange-50 hover:text-orange-600"
-                                }`}
-                              >
-                                <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${
-                                  isActiveClass ? "bg-white" : "bg-slate-300"
-                                }`} />
-                                {cls}
-                              </button>
+                              <div key={cls} className={`flex items-center gap-1 pr-1 rounded-lg transition-all ${isActiveClass ? "bg-orange-500 shadow-sm shadow-orange-500/20" : "hover:bg-orange-50"}`}>
+                                <button
+                                  onClick={() => {
+                                    setSelectedDept(dept);
+                                    setSelectedClass(cls);
+                                    setSelectedStudent(null);
+                                    setCurrentView("students");
+                                    setStudentSubView("attendance");
+                                  }}
+                                  className={`flex-1 flex items-center gap-2 px-3 py-2 text-[11px] font-bold cursor-pointer outline-none ${isActiveClass ? "text-white" : "text-slate-500"}`}
+                                >
+                                  <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                                    isActiveClass ? "bg-white" : "bg-slate-300"
+                                  }`} />
+                                  {cls}
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteClass(dept.id, cls)}
+                                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${isActiveClass ? "text-white/80 hover:text-white hover:bg-white/20" : "text-slate-400 hover:text-rose-500 hover:bg-rose-50"}`}
+                                  title="Delete Class"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
                             );
                           })
                         ) : (
@@ -1318,16 +1473,17 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Divider */}
-          <div className="mx-4 my-2 border-t border-slate-100" />
+        </div>
 
+        {/* Sticky Manage & Logout Footer */}
+        <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col gap-2">
           {/* Section Label */}
-          <div className="px-4 pb-1">
+          <div className="px-2 pb-1">
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Manage</span>
           </div>
 
           {/* Students & Faculty nav */}
-          <div className="px-2 pb-2 space-y-0.5">
+          <div className="space-y-1">
             <button
               onClick={() => {
                 setCurrentView("students");
@@ -1362,11 +1518,25 @@ export default function AdminDashboard() {
               <BookOpen className="h-4 w-4" />
               <span>Faculty</span>
             </button>
-          </div>
-        </div>
 
-        {/* Sticky Logout Footer */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+            <button
+              onClick={() => {
+                setCurrentView("news");
+                setSelectedDept(null);
+              }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all duration-200 border ${
+                currentView === "news"
+                  ? "bg-orange-500 border-orange-400 text-white shadow-md shadow-orange-500/10"
+                  : "text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900"
+              }`}
+            >
+              <Newspaper className="h-4 w-4" />
+              <span>News</span>
+            </button>
+          </div>
+
+          <div className="my-1 border-t border-slate-200/60" />
+
           <button
             onClick={() => setShowLogoutConfirm(true)}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-100 rounded-xl text-rose-600 text-sm font-bold transition-all cursor-pointer"
@@ -1389,156 +1559,16 @@ export default function AdminDashboard() {
                 `Timetable Grid Editor — ${selectedClass || ""}`
               )}
               {currentView === "faculty" && "Faculty Management"}
+              {currentView === "news" && "News Management"}
             </h2>
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Class/Dept filters inline for Attendance and Timetable sub-views */}
-            {currentView === "students" && studentSubView !== "list" && (
-              <div className="flex items-center gap-2">
-                <select
-                  value={selectedDept?.id || ""}
-                  onChange={(e) => {
-                    const dept = departments.find(d => d.id === e.target.value);
-                    if (dept) {
-                      setSelectedDept(dept);
-                      if (dept.classes && dept.classes.length > 0) {
-                        setSelectedClass(dept.classes[0]);
-                      } else {
-                        setSelectedClass("");
-                      }
-                      setSelectedStudent(null);
-                    }
-                  }}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none"
-                >
-                  {departments.map((dept) => (
-                    <option key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </option>
-                  ))}
-                </select>
-
-                {selectedDept && (
-                  <select
-                    value={selectedClass}
-                    onChange={(e) => {
-                      setSelectedClass(e.target.value);
-                      setSelectedStudent(null);
-                    }}
-                    className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none"
-                  >
-                    {selectedDept.classes?.map((cls) => (
-                      <option key={cls} value={cls}>
-                        {cls}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-            )}
-
-            {currentView === "students" && studentSubView === "attendance" && (
-              /* Date Selector */
-              <div className="flex items-center bg-slate-100 border border-slate-200/80 rounded-xl p-1 px-2.5 gap-2">
-                <Calendar className="h-4 w-4 text-slate-500" />
-                <input
-                  type="date"
-                  value={(() => {
-                    const parts = selectedDate.split("-");
-                    if (parts.length === 3) {
-                      return `${parts[2]}-${parts[1]}-${parts[0]}`;
-                    }
-                    return "";
-                  })()}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val) {
-                      const parts = val.split("-");
-                      if (parts.length === 3) {
-                        setSelectedDate(`${parts[2]}-${parts[1]}-${parts[0]}`);
-                      }
-                    }
-                  }}
-                  className="bg-transparent text-xs font-bold text-slate-700 outline-none border-none cursor-pointer focus:ring-0"
-                />
-              </div>
-            )}
-
-            {currentView === "students" && studentSubView !== "list" && (
-              /* Semester Filter */
-              <div className="flex items-center bg-slate-100 border border-slate-200/80 rounded-xl p-1">
-                <span className="text-xs font-bold px-3 text-slate-450">SEM</span>
-                <div className="flex gap-0.5">
-                  {["I", "II", "III", "IV", "V", "VI", "VII", "VIII"].map((sem) => (
-                    <button
-                      key={sem}
-                      onClick={() => {
-                        setSelectedSemester(sem);
-                        setSelectedStudent(null);
-                      }}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg cursor-pointer transition-all ${
-                        selectedSemester === sem
-                          ? "bg-white text-orange-600 shadow-sm"
-                          : "text-slate-500 hover:text-slate-800"
-                      }`}
-                    >
-                      {sem}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </header>
 
         {/* Dashboard Content */}
         <div className="flex-1 overflow-y-auto p-8 space-y-6 select-none">
-          {/* Sub-view navigation for students */}
-          {currentView === "students" && (
-            <div className="flex border-b border-slate-200 gap-4 mb-4 select-none">
-              <button
-                onClick={() => {
-                  setStudentSubView("list");
-                  setSearchTerm("");
-                }}
-                className={`pb-3 text-sm font-bold border-b-2 cursor-pointer transition-all ${
-                  studentSubView === "list"
-                    ? "border-orange-500 text-orange-600"
-                    : "border-transparent text-slate-550 hover:text-slate-850"
-                }`}
-              >
-                Student Profiles & Editor
-              </button>
-              <button
-                onClick={() => {
-                  setStudentSubView("attendance");
-                  setSearchTerm("");
-                }}
-                className={`pb-3 text-sm font-bold border-b-2 cursor-pointer transition-all ${
-                  studentSubView === "attendance"
-                    ? "border-orange-500 text-orange-600"
-                    : "border-transparent text-slate-550 hover:text-slate-850"
-                }`}
-              >
-                Class Attendance Sheet
-              </button>
-              <button
-                onClick={() => {
-                  setStudentSubView("timetable");
-                  setSearchTerm("");
-                }}
-                className={`pb-3 text-sm font-bold border-b-2 cursor-pointer transition-all ${
-                  studentSubView === "timetable"
-                    ? "border-orange-500 text-orange-600"
-                    : "border-transparent text-slate-550 hover:text-slate-855"
-                }`}
-              >
-                Class Timetable Editor
-              </button>
-            </div>
-          )}
-
           {/* Students -> Sub-view list */}
           {currentView === "students" && studentSubView === "list" && (
             <div className="space-y-6 animate-fade-in">
@@ -1754,6 +1784,17 @@ export default function AdminDashboard() {
               handleSort={handleSort}
               renderSortIndicator={renderSortIndicator}
               getAttendanceSummaryForDate={getAttendanceSummaryForDate}
+              selectedSemester={selectedSemester}
+              setSelectedSemester={setSelectedSemester}
+              setEditingStudent={setEditingStudent}
+              setOriginalStudentId={setOriginalStudentId}
+              setSelectedDate={setSelectedDate}
+              onViewFaculty={() => {
+                setCurrentView("faculty");
+                setFilterDept(selectedDept);
+                setSearchTerm("");
+              }}
+              onViewTimetable={() => setStudentSubView("timetable")}
             />
           )}
 
@@ -1962,6 +2003,93 @@ export default function AdminDashboard() {
                       )}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* News View */}
+          {currentView === "news" && (
+            <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                  <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                    <Newspaper className="h-4 w-4 text-orange-500" />
+                    Post New News
+                  </h3>
+                </div>
+                <form onSubmit={handleAddNews} className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Title *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. End Semester Exams Schedule"
+                      value={newsTitle}
+                      onChange={(e) => setNewsTitle(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Content *</label>
+                    <textarea
+                      placeholder="Write the news content here..."
+                      value={newsContent}
+                      onChange={(e) => setNewsContent(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-medium min-h-[120px] resize-y"
+                      required
+                    />
+                  </div>
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="submit"
+                      disabled={addingNews}
+                      className={`px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer ${addingNews ? "opacity-70 cursor-not-allowed" : ""}`}
+                    >
+                      {addingNews ? "Posting..." : "Post News"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100">
+                  <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-slate-400" />
+                    Published News
+                  </h3>
+                </div>
+                <div className="p-6">
+                  {loadingNews ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
+                    </div>
+                  ) : newsList.length === 0 ? (
+                    <div className="text-center py-8 text-slate-400 text-sm font-semibold">
+                      No news published yet.
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {newsList.map(news => (
+                        <div key={news.id} className="p-4 border border-slate-100 bg-slate-50/50 rounded-xl flex flex-col sm:flex-row gap-4 justify-between items-start">
+                          <div className="flex-1">
+                            <h4 className="text-sm font-bold text-slate-800 mb-1">{news.title}</h4>
+                            <p className="text-xs text-slate-500 whitespace-pre-wrap">{news.content}</p>
+                            <p className="text-[10px] text-slate-400 mt-2 font-semibold">
+                              {new Date(news.createdAt).toLocaleString()}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteNews(news.id)}
+                            className="p-2 bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-500 border border-slate-200 hover:border-rose-200 rounded-lg transition-colors cursor-pointer shrink-0"
+                            title="Delete News"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

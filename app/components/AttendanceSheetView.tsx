@@ -1,11 +1,13 @@
 "use client";
 
 import React from "react";
-import { Search, Users, CheckCircle, XCircle, Download, Info } from "lucide-react";
+import { Search, Users, CheckCircle, XCircle, Download, Info, Calendar } from "lucide-react";
 import { Student, Department } from "../types";
 
 interface AttendanceSheetViewProps {
   selectedClass: string;
+  onViewFaculty: () => void;
+  onViewTimetable: () => void;
   loadingStudents: boolean;
   stats: {
     totalStudents: number;
@@ -27,6 +29,11 @@ interface AttendanceSheetViewProps {
   handleSort: (field: "name" | "id" | "present" | "absent" | "od") => void;
   renderSortIndicator: (field: "name" | "id" | "present" | "absent" | "od") => React.ReactNode;
   getAttendanceSummaryForDate: (studentId: string, date: string) => any[] | null;
+  selectedSemester: string;
+  setSelectedSemester: (sem: string) => void;
+  setEditingStudent: (student: Student | null) => void;
+  setOriginalStudentId: (id: string) => void;
+  setSelectedDate: (date: string) => void;
 }
 
 export default function AttendanceSheetView({
@@ -48,12 +55,19 @@ export default function AttendanceSheetView({
   handleSort,
   renderSortIndicator,
   getAttendanceSummaryForDate,
+  selectedSemester,
+  setSelectedSemester,
+  setEditingStudent,
+  setOriginalStudentId,
+  setSelectedDate,
+  onViewFaculty,
+  onViewTimetable,
 }: AttendanceSheetViewProps) {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Info cards */}
       {selectedClass && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           <div className="bg-white border border-slate-200/80 p-6 rounded-2xl flex items-center justify-between shadow-sm">
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
@@ -95,6 +109,40 @@ export default function AttendanceSheetView({
               <XCircle className="h-6 w-6" />
             </div>
           </div>
+
+          <div 
+            onClick={onViewFaculty}
+            className="bg-white border border-slate-200/80 p-6 rounded-2xl flex items-center justify-between shadow-sm cursor-pointer hover:border-indigo-400 hover:shadow-md transition-all group"
+          >
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider group-hover:text-indigo-500 transition-colors">
+                Department Faculty
+              </p>
+              <h3 className="text-lg font-black text-slate-800 mt-2 group-hover:text-indigo-600 transition-colors">
+                View All
+              </h3>
+            </div>
+            <div className="p-4 bg-indigo-50 text-indigo-500 rounded-xl border border-indigo-100 group-hover:bg-indigo-500 group-hover:text-white transition-all">
+              <Users className="h-6 w-6" />
+            </div>
+          </div>
+
+          <div 
+            onClick={onViewTimetable}
+            className="bg-white border border-slate-200/80 p-6 rounded-2xl flex items-center justify-between shadow-sm cursor-pointer hover:border-amber-400 hover:shadow-md transition-all group"
+          >
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider group-hover:text-amber-500 transition-colors">
+                Class Timetable
+              </p>
+              <h3 className="text-lg font-black text-slate-800 mt-2 group-hover:text-amber-600 transition-colors">
+                Manage
+              </h3>
+            </div>
+            <div className="p-4 bg-amber-50 text-amber-500 rounded-xl border border-amber-100 group-hover:bg-amber-500 group-hover:text-white transition-all">
+              <Calendar className="h-6 w-6" />
+            </div>
+          </div>
         </div>
       )}
 
@@ -113,7 +161,7 @@ export default function AttendanceSheetView({
                   className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-slate-400"
                 />
               </div>
-              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80">
+              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80 items-center">
                 <button
                   onClick={() => setActiveTab("overview")}
                   className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
@@ -124,16 +172,52 @@ export default function AttendanceSheetView({
                 >
                   Semester Stats
                 </button>
-                <button
-                  onClick={() => setActiveTab("daily")}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                <div className={`flex items-center rounded-lg transition-all ${
                     activeTab === "daily"
-                      ? "bg-white text-orange-600 shadow-sm"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
+                      ? "bg-white text-orange-600 shadow-sm pl-4 pr-2 py-1.5"
+                      : "text-slate-500 hover:text-slate-800 px-4 py-1.5"
+                  }`}>
+                  <button
+                    onClick={() => setActiveTab("daily")}
+                    className="text-xs font-bold outline-none cursor-pointer"
+                  >
+                    Daily Grid
+                  </button>
+                  {activeTab === "daily" && (
+                    <input
+                      type="date"
+                      value={(() => {
+                        const parts = selectedDate.split("-");
+                        if (parts.length === 3) {
+                          return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                        }
+                        return "";
+                      })()}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val) {
+                          const parts = val.split("-");
+                          if (parts.length === 3) {
+                            setSelectedDate(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                          }
+                        }
+                      }}
+                      className="bg-transparent text-[10px] font-bold text-slate-700 outline-none border-none cursor-pointer focus:ring-0 ml-2 p-0"
+                    />
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-400 uppercase">Semester</span>
+                <select
+                  value={selectedSemester}
+                  onChange={(e) => setSelectedSemester(e.target.value)}
+                  className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 outline-none focus:border-slate-400"
                 >
-                  Daily Grid ({selectedDate})
-                </button>
+                  {["I", "II", "III", "IV", "V", "VI", "VII", "VIII"].map((sem) => (
+                    <option key={sem} value={sem}>{sem}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="flex items-center justify-between sm:justify-end gap-4 w-full lg:w-auto shrink-0">
@@ -196,8 +280,11 @@ export default function AttendanceSheetView({
                           <td className="p-4 text-center font-bold text-blue-600">{od}%</td>
                           <td className="p-4 text-center font-bold text-rose-600">{a}%</td>
                           <td className="p-4 pr-6 text-right">
-                            <button onClick={() => setSelectedStudent(student)} className="px-3 py-1.5 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-600 hover:shadow-sm text-xs font-bold rounded-lg transition-all border border-slate-200/80 hover:border-orange-400 cursor-pointer">
-                              View History
+                            <button onClick={() => {
+                              setEditingStudent(student);
+                              setOriginalStudentId(student.id);
+                            }} className="px-3 py-1.5 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-600 hover:shadow-sm text-xs font-bold rounded-lg transition-all border border-slate-200/80 hover:border-orange-400 cursor-pointer">
+                              Edit
                             </button>
                           </td>
                         </tr>
