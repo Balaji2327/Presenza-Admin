@@ -67,13 +67,13 @@ export default function AttendanceSheetView({
     <div className="space-y-6 animate-fade-in">
       {/* Info cards */}
       {selectedClass && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-          <div className="bg-white border border-slate-200/80 p-6 rounded-2xl flex items-center justify-between shadow-sm">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-6">
+          <div className="bg-white border border-slate-200/80 p-4 lg:p-6 rounded-2xl flex items-center justify-between shadow-sm">
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                 Total Students
               </p>
-              <h3 className="text-3xl font-black text-slate-800 mt-2">
+              <h3 className="text-xl lg:text-3xl font-black text-slate-800 mt-1 lg:mt-2">
                 {loadingStudents ? "..." : stats.totalStudents}
               </h3>
             </div>
@@ -82,12 +82,12 @@ export default function AttendanceSheetView({
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200/80 p-6 rounded-2xl flex items-center justify-between shadow-sm">
+          <div className="bg-white border border-slate-200/80 p-4 lg:p-6 rounded-2xl flex items-center justify-between shadow-sm">
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                 Avg. Attendance Rate
               </p>
-              <h3 className="text-3xl font-black mt-2 bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
+              <h3 className="text-xl lg:text-3xl font-black mt-1 lg:mt-2 bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
                 {loadingAttendance ? "..." : `${stats.avgPresent}%`}
               </h3>
             </div>
@@ -96,12 +96,12 @@ export default function AttendanceSheetView({
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200/80 p-6 rounded-2xl flex items-center justify-between shadow-sm">
+          <div className="bg-white border border-slate-200/80 p-4 lg:p-6 rounded-2xl flex items-center justify-between shadow-sm">
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                 Low Attendance Alert
               </p>
-              <h3 className="text-3xl font-black text-rose-500 mt-2">
+              <h3 className="text-xl lg:text-3xl font-black text-rose-500 mt-1 lg:mt-2">
                 {loadingAttendance ? "..." : stats.attendanceWarningCount}
               </h3>
             </div>
@@ -112,13 +112,13 @@ export default function AttendanceSheetView({
 
           <div 
             onClick={onViewFaculty}
-            className="bg-white border border-slate-200/80 p-6 rounded-2xl flex items-center justify-between shadow-sm cursor-pointer hover:border-indigo-400 hover:shadow-md transition-all group"
+            className="bg-white border border-slate-200/80 p-4 lg:p-6 rounded-2xl flex items-center justify-between shadow-sm cursor-pointer hover:border-indigo-400 hover:shadow-md transition-all group"
           >
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider group-hover:text-indigo-500 transition-colors">
                 Department Faculty
               </p>
-              <h3 className="text-lg font-black text-slate-800 mt-2 group-hover:text-indigo-600 transition-colors">
+              <h3 className="text-base lg:text-lg font-black text-slate-800 mt-1 lg:mt-2 group-hover:text-indigo-600 transition-colors">
                 View All
               </h3>
             </div>
@@ -129,13 +129,13 @@ export default function AttendanceSheetView({
 
           <div 
             onClick={onViewTimetable}
-            className="bg-white border border-slate-200/80 p-6 rounded-2xl flex items-center justify-between shadow-sm cursor-pointer hover:border-amber-400 hover:shadow-md transition-all group"
+            className="bg-white border border-slate-200/80 p-4 lg:p-6 rounded-2xl flex items-center justify-between shadow-sm cursor-pointer hover:border-amber-400 hover:shadow-md transition-all group"
           >
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider group-hover:text-amber-500 transition-colors">
                 Class Timetable
               </p>
-              <h3 className="text-lg font-black text-slate-800 mt-2 group-hover:text-amber-600 transition-colors">
+              <h3 className="text-base lg:text-lg font-black text-slate-800 mt-1 lg:mt-2 group-hover:text-amber-600 transition-colors">
                 Manage
               </h3>
             </div>
@@ -149,9 +149,9 @@ export default function AttendanceSheetView({
       {/* Main Grid: Student Attendance List */}
       {selectedClass ? (
         <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden flex flex-col shadow-sm">
-          <div className="p-6 border-b border-slate-100 flex flex-col lg:flex-row gap-4 items-center justify-between bg-slate-50/30">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
-              <div className="relative w-full sm:w-64">
+          <div className="p-4 lg:p-6 border-b border-slate-100 flex flex-col gap-3 lg:flex-row lg:gap-4 items-stretch lg:items-center justify-between bg-slate-50/30">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 w-full lg:w-auto">
+              <div className="relative w-full sm:w-56 lg:w-64">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                 <input
                   type="text"
@@ -220,7 +220,7 @@ export default function AttendanceSheetView({
                 </select>
               </div>
             </div>
-            <div className="flex items-center justify-between sm:justify-end gap-4 w-full lg:w-auto shrink-0">
+            <div className="flex items-center justify-between gap-3 w-full lg:w-auto shrink-0">
               <button
                 onClick={handleDownloadExcel}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/10 hover:shadow-lg transition-all border border-emerald-500 hover:border-emerald-600 cursor-pointer"
@@ -358,7 +358,7 @@ export default function AttendanceSheetView({
           )}
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 border-dashed p-24 rounded-2xl text-center text-slate-400 flex flex-col items-center justify-center shadow-sm">
+        <div className="bg-white border border-slate-200 border-dashed p-12 lg:p-24 rounded-2xl text-center text-slate-400 flex flex-col items-center justify-center shadow-sm">
           <div className="bg-slate-50 p-5 rounded-full mb-4 border border-slate-100">
             <Info className="h-10 w-10 text-slate-400" />
           </div>

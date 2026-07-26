@@ -36,8 +36,8 @@ export default function TimetableEditorView({
   faculties,
 }: TimetableEditorViewProps) {
   return (
-    <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+    <div className="bg-white border border-slate-200 p-4 lg:p-6 rounded-2xl shadow-sm space-y-4 lg:space-y-6 animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
         <div>
           <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
             <Calendar className="h-5 w-5 text-orange-500" /> Timetable Grid Editor
@@ -73,7 +73,7 @@ export default function TimetableEditorView({
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto border border-slate-200 rounded-xl bg-slate-50/20 p-4">
+          <div className="overflow-x-auto border border-slate-200 rounded-xl bg-slate-50/20 p-2 lg:p-4">
             <table className="w-full border-collapse text-left bg-white rounded-lg shadow-sm overflow-hidden border border-slate-200">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-100 text-slate-700 text-xs font-bold uppercase tracking-wider select-none">
@@ -114,7 +114,7 @@ export default function TimetableEditorView({
           </div>
 
           {/* Course Details & Faculty Mapping Editor */}
-          <div className="border border-slate-200 rounded-xl bg-slate-50/20 p-6 space-y-4 mt-6">
+          <div className="border border-slate-200 rounded-xl bg-slate-50/20 p-4 lg:p-6 space-y-4 mt-4 lg:mt-6">
             <div className="flex items-center justify-between border-b border-slate-150 pb-3">
               <div>
                 <h4 className="font-bold text-sm text-slate-800">Course & Faculty Mapping</h4>
@@ -138,8 +138,8 @@ export default function TimetableEditorView({
             ) : (
               <div className="space-y-3">
                 {courseMappings.map((map, index) => (
-                  <div key={index} className="flex gap-4 items-center bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
-                    <div className="w-1/4">
+                  <div key={index} className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
+                    <div className="w-full sm:w-1/4">
                       <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Abbreviation *</label>
                       <input
                         type="text"
@@ -158,7 +158,7 @@ export default function TimetableEditorView({
                       />
                     </div>
 
-                    <div className="w-1/3">
+                    <div className="w-full sm:w-1/3">
                       <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Course Name *</label>
                       <input
                         type="text"
@@ -207,7 +207,7 @@ export default function TimetableEditorView({
                       onClick={() => {
                         setCourseMappings(prev => prev.filter((_, i) => i !== index));
                       }}
-                      className="p-2 mt-4 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-lg text-rose-500 transition-all cursor-pointer"
+                      className="p-2 sm:mt-4 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-lg text-rose-500 transition-all cursor-pointer self-end sm:self-auto"
                     >
                       Delete
                     </button>

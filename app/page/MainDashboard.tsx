@@ -19,6 +19,7 @@ import {
   deleteDoc,
   updateDoc,
   addDoc,
+  writeBatch,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
@@ -41,7 +42,9 @@ import {
   LogOut,
   AlertTriangle,
   Newspaper,
-  Trash2
+  Trash2,
+  Menu,
+  PanelLeftClose
 } from "lucide-react";
 
 interface Department {
@@ -57,6 +60,7 @@ interface Student {
   class: string;
   department: string;
   mentor_id?: string;
+  semester?: string;
 }
 
 interface NewsItem {
@@ -130,7 +134,8 @@ export default function AdminDashboard() {
     email: "",
     class: "",
     department: "",
-    mentor_id: ""
+    mentor_id: "",
+    semester: "I"
   });
   const [showFilterPopover, setShowFilterPopover] = useState<boolean>(false);
   const [tempDept, setTempDept] = useState<Department | null>(null);
@@ -138,6 +143,7 @@ export default function AdminDashboard() {
   const [filterDept, setFilterDept] = useState<Department | null>(null);
   const [filterClass, setFilterClass] = useState<string>("");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState<boolean>(false);
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
 
   // Add Dept & Class state variables
   const [isAddingDept, setIsAddingDept] = useState(false);
@@ -309,6 +315,7 @@ export default function AdminDashboard() {
             class: data.class || "",
             department: data.department || "",
             mentor_id: data.mentor_id || "",
+            semester: data.semester || "I",
           } as Student;
         });
 
@@ -327,7 +334,7 @@ export default function AdminDashboard() {
             "all_students",
             student.id,
             "attendance",
-            selectedSemester
+            student.semester || selectedSemester
           );
           
           return onSnapshot(semDocRef, (docSnap) => {
@@ -360,6 +367,40 @@ export default function AdminDashboard() {
     };
   }, [selectedClass, selectedSemester]);
 
+  const handleSemesterChange = async (newSemester: string) => {
+    if (!selectedClass) {
+      setSelectedSemester(newSemester);
+      return;
+    }
+    try {
+      setLoadingStudents(true);
+      const studentsRef = collection(db, "colleges", "students", "all_students");
+      const q = query(studentsRef, where("class", "==", selectedClass));
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        const batch = writeBatch(db);
+        snapshot.docs.forEach((docSnap) => {
+          batch.update(docSnap.ref, { semester: newSemester });
+        });
+        await batch.commit();
+      }
+
+      // Update the global state after Firestore updates are committed
+      setSelectedSemester(newSemester);
+      
+      // Re-fetch all students to sync global state
+      await fetchAllStudents();
+
+      showPopup("success", "Semester Updated", `All students in class ${selectedClass} set to Semester ${newSemester}`);
+    } catch (err: any) {
+      console.error("Error setting semester for class students:", err);
+      showPopup("error", "Error", "Failed to update students' semester: " + err.message);
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
   // Fetch all students globally
   const fetchAllStudents = async () => {
     try {
@@ -375,6 +416,7 @@ export default function AdminDashboard() {
           class: data.class || "",
           department: data.department || "",
           mentor_id: data.mentor_id || "",
+          semester: data.semester || "I",
         } as Student;
       });
       list.sort((a, b) => a.name.localeCompare(b.name));
@@ -590,6 +632,7 @@ export default function AdminDashboard() {
           class: editingStudent.class,
           department: editingStudent.department,
           mentor_id: editingStudent.mentor_id || "",
+          semester: editingStudent.semester || "I",
         });
 
         // Copy attendance subcollection
@@ -614,6 +657,7 @@ export default function AdminDashboard() {
           class: editingStudent.class,
           department: editingStudent.department,
           mentor_id: editingStudent.mentor_id || "",
+          semester: editingStudent.semester || "I",
         });
       }
 
@@ -650,6 +694,7 @@ export default function AdminDashboard() {
         class: newStudent.class,
         department: newStudent.department,
         mentor_id: newStudent.mentor_id || "",
+        semester: newStudent.semester || selectedSemester || "I",
       });
 
       showPopup("success", "Success", "Student added successfully!");
@@ -660,7 +705,8 @@ export default function AdminDashboard() {
         email: "",
         class: "",
         department: "",
-        mentor_id: ""
+        mentor_id: "",
+        semester: "I"
       });
       fetchAllStudents();
     } catch (err: any) {
@@ -1329,10 +1375,18 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-800 font-sans">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 sidebar-overlay lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* SIDEBAR: Navigation Menu */}
-      <aside className="w-64 border-r border-slate-200 bg-white flex flex-col shadow-sm h-screen sticky top-0">
+      <aside className={`w-64 border-r border-slate-200 bg-white flex flex-col shadow-sm h-screen shrink-0 z-50 transition-transform duration-200 ease-out fixed top-0 left-0 lg:sticky lg:translate-x-0 ${sidebarOpen ? 'translate-x-0 sidebar-slide-in' : '-translate-x-full lg:translate-x-0'}`}>
         {/* Brand Header */}
-        <div className="p-6 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
+        <div className="p-4 lg:p-6 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
           <div className="bg-orange-100 p-0 rounded-xl h-11 w-11 shrink-0 shadow-md shadow-orange-500/10 flex items-center justify-center overflow-hidden">
             <img 
               src="/splash_logo_dark.png" 
@@ -1340,12 +1394,19 @@ export default function AdminDashboard() {
               className="h-full w-full object-contain"
             />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-orange-600 to-amber-500 bg-clip-text text-transparent">
               PRESENZA
             </h1>
             <p className="text-xs text-slate-400 font-bold">ADMIN PORTAL</p>
           </div>
+          {/* Close sidebar button on mobile */}
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors cursor-pointer"
+          >
+            <PanelLeftClose className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Dept + Class Tree */}
@@ -1407,6 +1468,7 @@ export default function AdminDashboard() {
                           setSelectedClass("");
                           setCurrentView("students");
                           setStudentSubView("attendance");
+                          // Don't close sidebar on dept click (user might want to expand and select class)
                         }}
                         className={`flex-1 flex items-center justify-between gap-2 px-3 py-2.5 text-xs font-bold cursor-pointer outline-none ${isActiveDept ? "text-orange-600" : "text-slate-600"}`}
                       >
@@ -1444,6 +1506,7 @@ export default function AdminDashboard() {
                                     setSelectedStudent(null);
                                     setCurrentView("students");
                                     setStudentSubView("attendance");
+                                    setSidebarOpen(false);
                                   }}
                                   className={`flex-1 flex items-center gap-2 px-3 py-2 text-[11px] font-bold cursor-pointer outline-none ${isActiveClass ? "text-white" : "text-slate-500"}`}
                                 >
@@ -1491,6 +1554,7 @@ export default function AdminDashboard() {
                 setSearchTerm("");
                 setEditingStudent(null);
                 setSelectedDept(null);
+                setSidebarOpen(false);
               }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all duration-200 border ${
                 currentView === "students"
@@ -1508,6 +1572,7 @@ export default function AdminDashboard() {
                 setSearchTerm("");
                 setEditingFaculty(null);
                 setSelectedDept(null);
+                setSidebarOpen(false);
               }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all duration-200 border ${
                 currentView === "faculty"
@@ -1523,6 +1588,7 @@ export default function AdminDashboard() {
               onClick={() => {
                 setCurrentView("news");
                 setSelectedDept(null);
+                setSidebarOpen(false);
               }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all duration-200 border ${
                 currentView === "news"
@@ -1550,13 +1616,20 @@ export default function AdminDashboard() {
       {/* MAIN VIEWPORT */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
-        <header className="h-20 border-b border-slate-200 flex items-center justify-between px-8 bg-white shadow-sm z-10">
-          <div className="flex items-center gap-4">
-            <h2 className="text-lg font-extrabold text-slate-800">
+        <header className="h-14 lg:h-20 border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 bg-white shadow-sm z-10 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Hamburger Menu for Mobile */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 hover:bg-slate-100 rounded-xl text-slate-600 hover:text-slate-900 transition-colors cursor-pointer shrink-0"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <h2 className="text-sm lg:text-lg font-extrabold text-slate-800 truncate">
               {currentView === "students" && (
-                studentSubView === "list" ? "Student Profiles & Editor" :
-                studentSubView === "attendance" ? `Attendance Viewer — ${selectedClass || ""}` :
-                `Timetable Grid Editor — ${selectedClass || ""}`
+                studentSubView === "list" ? "Student Profiles" :
+                studentSubView === "attendance" ? `Attendance — ${selectedClass || ""}` :
+                `Timetable — ${selectedClass || ""}`
               )}
               {currentView === "faculty" && "Faculty Management"}
               {currentView === "news" && "News Management"}
@@ -1568,12 +1641,12 @@ export default function AdminDashboard() {
         </header>
 
         {/* Dashboard Content */}
-        <div className="flex-1 overflow-y-auto p-8 space-y-6 select-none">
+        <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-4 lg:space-y-6 select-none">
           {/* Students -> Sub-view list */}
           {currentView === "students" && studentSubView === "list" && (
-            <div className="space-y-6 animate-fade-in">
+            <div className="space-y-4 lg:space-y-6 animate-fade-in">
               {/* Search & Filter Header */}
-              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 items-stretch sm:items-center justify-between bg-white border border-slate-200 p-4 lg:p-6 rounded-2xl shadow-sm">
                 <div className="relative w-full sm:w-80">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                   <input
@@ -1584,7 +1657,7 @@ export default function AdminDashboard() {
                     className="w-full bg-slate-50 border border-slate-205 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-orange-500"
                   />
                 </div>
-                <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end flex-wrap">
                   <div className="relative">
                     <button
                       onClick={() => {
@@ -1693,18 +1766,74 @@ export default function AdminDashboard() {
                         mentor_id: ""
                       });
                     }}
-                    className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer"
+                    className="px-3 sm:px-4 py-2 sm:py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer whitespace-nowrap"
                   >
                     + Add Student
                   </button>
-                  <div className="text-xs font-bold text-slate-400 uppercase shrink-0">
-                    Total Records: {filteredAllStudents.length}
+                  <div className="text-xs font-bold text-slate-400 uppercase shrink-0 hidden sm:block">
+                    Total: {filteredAllStudents.length}
                   </div>
                 </div>
               </div>
 
-              {/* Students Table */}
-              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+              {/* Students - Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {loadingAllStudents ? (
+                  <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-400 font-bold shadow-sm">Loading student profiles...</div>
+                ) : filteredAllStudents.length === 0 ? (
+                  <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-400 font-bold shadow-sm">No students found.</div>
+                ) : (
+                  filteredAllStudents.map((student) => (
+                    <div key={student.id} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-bold text-slate-800 truncate">{student.name}</h4>
+                          <p className="text-[11px] font-mono text-slate-500 mt-0.5">{student.id}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold">{student.class}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5 text-xs text-slate-500">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400 font-bold w-12 shrink-0">Email</span>
+                          <span className="font-medium truncate">{student.email}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400 font-bold w-12 shrink-0">Dept</span>
+                          <span className="font-semibold">{student.department}</span>
+                        </div>
+                        {student.mentor_id && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 font-bold w-12 shrink-0">Mentor</span>
+                            <span className="font-mono text-xs">{student.mentor_id}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2 pt-2 border-t border-slate-100">
+                        <button
+                          onClick={() => {
+                            setEditingStudent(student);
+                            setOriginalStudentId(student.id);
+                          }}
+                          className="flex-1 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-100 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteStudent(student.id)}
+                          className="flex-1 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Students - Desktop Table View */}
+              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hidden md:block">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
@@ -1785,7 +1914,7 @@ export default function AdminDashboard() {
               renderSortIndicator={renderSortIndicator}
               getAttendanceSummaryForDate={getAttendanceSummaryForDate}
               selectedSemester={selectedSemester}
-              setSelectedSemester={setSelectedSemester}
+              setSelectedSemester={handleSemesterChange}
               setEditingStudent={setEditingStudent}
               setOriginalStudentId={setOriginalStudentId}
               setSelectedDate={setSelectedDate}
@@ -1814,9 +1943,9 @@ export default function AdminDashboard() {
           )}
 
           {currentView === "faculty" && (
-            <div className="space-y-6 animate-fade-in">
+            <div className="space-y-4 lg:space-y-6 animate-fade-in">
               {/* Search & Add Faculty Header */}
-              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 items-stretch sm:items-center justify-between bg-white border border-slate-200 p-4 lg:p-6 rounded-2xl shadow-sm">
                 <div className="relative w-full sm:w-80">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                   <input
@@ -1827,7 +1956,7 @@ export default function AdminDashboard() {
                     className="w-full bg-slate-50 border border-slate-205 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-orange-500"
                   />
                 </div>
-                <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end flex-wrap">
                   <div className="relative">
                     <button
                       onClick={() => {
@@ -1932,18 +2061,68 @@ export default function AdminDashboard() {
                       setEditingFacultyDeptId("");
                       setAddingFaculty(true);
                     }}
-                    className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer"
+                    className="px-3 sm:px-4 py-2 sm:py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer whitespace-nowrap"
                   >
                     + Add Faculty
                   </button>
-                  <div className="text-xs font-bold text-slate-400 uppercase shrink-0">
-                    Total Records: {filteredAllFaculty.length}
+                  <div className="text-xs font-bold text-slate-400 uppercase shrink-0 hidden sm:block">
+                    Total: {filteredAllFaculty.length}
                   </div>
                 </div>
               </div>
 
-              {/* Faculty Table */}
-              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+              {/* Faculty - Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {loadingFaculties ? (
+                  <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-400 font-bold shadow-sm">Loading faculty profiles...</div>
+                ) : filteredAllFaculty.length === 0 ? (
+                  <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-400 font-bold shadow-sm">No faculty members found.</div>
+                ) : (
+                  filteredAllFaculty.map((fac) => (
+                    <div key={fac.id} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-bold text-slate-800 truncate">{fac.name}</h4>
+                          <p className="text-[11px] font-mono text-slate-500 mt-0.5">{fac.id}</p>
+                        </div>
+                        <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold shrink-0">{fac.department}</span>
+                      </div>
+                      <div className="space-y-1.5 text-xs text-slate-500">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400 font-bold w-14 shrink-0">Email</span>
+                          <span className="font-medium truncate">{fac.email}</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-slate-400 font-bold w-14 shrink-0">Classes</span>
+                          <div className="flex flex-wrap gap-1">
+                            {(fac.classes || []).map((cls: string) => (
+                              <span key={cls} className="px-2 py-0.5 bg-slate-100 text-slate-650 rounded text-[10px] font-bold">{cls}</span>
+                            ))}
+                            {(fac.classes || []).length === 0 && <span className="text-xs text-slate-400 italic">None</span>}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 pt-2 border-t border-slate-100">
+                        <button
+                          onClick={() => setEditingFaculty(fac)}
+                          className="flex-1 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-100 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteFaculty(fac.id)}
+                          className="flex-1 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Faculty - Desktop Table View */}
+              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hidden md:block">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
@@ -2010,15 +2189,15 @@ export default function AdminDashboard() {
 
           {/* News View */}
           {currentView === "news" && (
-            <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+            <div className="max-w-4xl mx-auto space-y-4 lg:space-y-6 animate-fade-in">
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-slate-100 flex items-center justify-between">
                   <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
                     <Newspaper className="h-4 w-4 text-orange-500" />
                     Post New News
                   </h3>
                 </div>
-                <form onSubmit={handleAddNews} className="p-6 space-y-4">
+                <form onSubmit={handleAddNews} className="p-4 lg:p-6 space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Title *</label>
                     <input
@@ -2123,8 +2302,8 @@ export default function AdminDashboard() {
             </div>
 
             {/* Profile Metrics */}
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/30">
-              <div className="grid grid-cols-3 gap-4">
+            <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-slate-100 bg-slate-50/30">
+              <div className="grid grid-cols-3 gap-2 lg:gap-4">
                 <div className="bg-white border border-slate-100 p-4 rounded-xl text-center shadow-xs">
                   <span className="text-xs text-slate-400 font-bold block mb-1">PRESENT</span>
                   <span className="text-lg font-black text-emerald-600">
@@ -2264,7 +2443,7 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Department</label>
                   <select
@@ -2309,15 +2488,31 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Mentor ID</label>
-                <input
-                  type="text"
-                  value={editingStudent.mentor_id || ""}
-                  onChange={(e) => setEditingStudent({ ...editingStudent, mentor_id: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-mono"
-                  placeholder="e.g. FAC123"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Mentor ID</label>
+                  <input
+                    type="text"
+                    value={editingStudent.mentor_id || ""}
+                    onChange={(e) => setEditingStudent({ ...editingStudent, mentor_id: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-mono"
+                    placeholder="e.g. FAC123"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Semester</label>
+                  <select
+                    value={editingStudent.semester || "I"}
+                    onChange={(e) => setEditingStudent({ ...editingStudent, semester: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500 cursor-pointer"
+                    required
+                  >
+                    {["I", "II", "III", "IV", "V", "VI", "VII", "VIII"].map((sem) => (
+                      <option key={sem} value={sem}>{sem}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
@@ -2557,7 +2752,7 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Department *</label>
                   <select
@@ -2602,15 +2797,31 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Mentor ID</label>
-                <input
-                  type="text"
-                  placeholder="e.g. FAC123"
-                  value={newStudent.mentor_id || ""}
-                  onChange={(e) => setNewStudent({ ...newStudent, mentor_id: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-mono"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Mentor ID</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. FAC123"
+                    value={newStudent.mentor_id || ""}
+                    onChange={(e) => setNewStudent({ ...newStudent, mentor_id: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Semester *</label>
+                  <select
+                    value={newStudent.semester || "I"}
+                    onChange={(e) => setNewStudent({ ...newStudent, semester: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500 cursor-pointer"
+                    required
+                  >
+                    {["I", "II", "III", "IV", "V", "VI", "VII", "VIII"].map((sem) => (
+                      <option key={sem} value={sem}>{sem}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
@@ -2709,7 +2920,7 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Department *</label>
                   <select
@@ -2820,7 +3031,7 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Department *</label>
                   <select
