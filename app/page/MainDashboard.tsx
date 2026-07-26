@@ -69,6 +69,7 @@ interface NewsItem {
   title: string;
   content: string;
   createdAt: number;
+  type?: "pinned" | "regular";
 }
 
 interface AttendanceRecord {
@@ -91,6 +92,7 @@ export default function AdminDashboard() {
   const [loadingNews, setLoadingNews] = useState<boolean>(false);
   const [newsTitle, setNewsTitle] = useState("");
   const [newsContent, setNewsContent] = useState("");
+  const [newsType, setNewsType] = useState<"pinned" | "regular">("regular");
   const [addingNews, setAddingNews] = useState(false);
 
   // Auth states
@@ -171,7 +173,7 @@ export default function AdminDashboard() {
     Thursday: Array(7).fill(""),
     Friday: Array(7).fill("")
   });
-  const [courseMappings, setCourseMappings] = useState<Array<{ abbreviation: string; name: string; facultyId: string; facultyName: string }>>([]);
+  const [courseMappings, setCourseMappings] = useState<Array<{ abbreviation: string; name: string; facultyId: string; facultyName: string; isElective?: boolean; name2?: string; facultyId2?: string; facultyName2?: string }>>([]);
   const [uploadingTimetable, setUploadingTimetable] = useState(false);
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);
   const [selectedClass, setSelectedClass] = useState<string>("");
@@ -1490,17 +1492,20 @@ export default function AdminDashboard() {
       const docRef = await addDoc(collection(db, "news"), {
         title: newsTitle.trim(),
         content: newsContent.trim(),
+        type: newsType,
         createdAt: Date.now()
       });
       const newNewsItem: NewsItem = {
         id: docRef.id,
         title: newsTitle.trim(),
         content: newsContent.trim(),
+        type: newsType,
         createdAt: Date.now()
       };
       setNewsList([newNewsItem, ...newsList]);
       setNewsTitle("");
       setNewsContent("");
+      setNewsType("regular");
       showPopup("success", "News Added", "News item successfully added.");
     } catch (err: any) {
       console.error("Error adding news:", err);
@@ -2412,16 +2417,29 @@ export default function AdminDashboard() {
                   </h3>
                 </div>
                 <form onSubmit={handleAddNews} className="p-4 lg:p-6 space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Title *</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. End Semester Exams Schedule"
-                      value={newsTitle}
-                      onChange={(e) => setNewsTitle(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
-                      required
-                    />
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Title *</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. End Semester Exams Schedule"
+                        value={newsTitle}
+                        onChange={(e) => setNewsTitle(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                        required
+                      />
+                    </div>
+                    <div className="w-1/3">
+                      <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Type *</label>
+                      <select
+                        value={newsType}
+                        onChange={(e) => setNewsType(e.target.value as "pinned" | "regular")}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-500"
+                      >
+                        <option value="regular">Regular News</option>
+                        <option value="pinned">Pinned News</option>
+                      </select>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Content *</label>
@@ -2466,7 +2484,16 @@ export default function AdminDashboard() {
                       {newsList.map(news => (
                         <div key={news.id} className="p-4 border border-slate-100 bg-slate-50/50 rounded-xl flex flex-col sm:flex-row gap-4 justify-between items-start">
                           <div className="flex-1">
-                            <h4 className="text-sm font-bold text-slate-800 mb-1">{news.title}</h4>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="text-sm font-bold text-slate-800">{news.title}</h4>
+                              <span className={`px-2 py-1 rounded text-[10px] font-bold ${
+                                news.type === "pinned" 
+                                  ? "bg-rose-100 text-rose-700" 
+                                  : "bg-blue-100 text-blue-700"
+                              }`}>
+                                {news.type === "pinned" ? "Pinned" : "Regular"}
+                              </span>
+                            </div>
                             <p className="text-xs text-slate-500 whitespace-pre-wrap">{news.content}</p>
                             <p className="text-[10px] text-slate-400 mt-2 font-semibold">
                               {new Date(news.createdAt).toLocaleString()}
