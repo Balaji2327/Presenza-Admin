@@ -84,6 +84,7 @@ export default function AdminDashboard() {
   const [currentView, setCurrentView] = useState<"students" | "faculty" | "news">("students");
   const [studentSubView, setStudentSubView] = useState<"list" | "attendance" | "timetable">("list");
   const [expandedDepts, setExpandedDepts] = useState<Set<string>>(new Set());
+  const [fromDeptFaculty, setFromDeptFaculty] = useState<boolean>(false);
 
   // News states
   const [newsList, setNewsList] = useState<NewsItem[]>([]);
@@ -1664,6 +1665,7 @@ export default function AdminDashboard() {
                           setSelectedClass("");
                           setCurrentView("students");
                           setStudentSubView("attendance");
+                          setFromDeptFaculty(false);
                           // Don't close sidebar on dept click (user might want to expand and select class)
                         }}
                         className={`flex-1 flex items-center justify-between gap-2 px-3 py-2.5 text-xs font-bold cursor-pointer outline-none ${isActiveDept ? "text-orange-600" : "text-slate-600"}`}
@@ -1706,6 +1708,7 @@ export default function AdminDashboard() {
                                     setSelectedStudent(null);
                                     setCurrentView("students");
                                     setStudentSubView("attendance");
+                                    setFromDeptFaculty(false);
                                     setSidebarOpen(false);
                                   }}
                                   className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold cursor-pointer outline-none ${isActiveClass ? "text-white" : "text-slate-500"}`}
@@ -1747,6 +1750,9 @@ export default function AdminDashboard() {
                 setSearchTerm("");
                 setEditingStudent(null);
                 setSelectedDept(null);
+                setFromDeptFaculty(false);
+                setFilterDept(null);
+                setFilterClass("");
                 setSidebarOpen(false);
               }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all duration-200 border ${
@@ -1765,10 +1771,13 @@ export default function AdminDashboard() {
                 setSearchTerm("");
                 setEditingFaculty(null);
                 setSelectedDept(null);
+                setFromDeptFaculty(false);
+                setFilterDept(null);
+                setFilterClass("");
                 setSidebarOpen(false);
               }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all duration-200 border ${
-                currentView === "faculty"
+                currentView === "faculty" && !fromDeptFaculty
                   ? "bg-orange-500 border-orange-400 text-white shadow-md shadow-orange-500/10"
                   : "text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900"
               }`}
@@ -1781,6 +1790,9 @@ export default function AdminDashboard() {
               onClick={() => {
                 setCurrentView("news");
                 setSelectedDept(null);
+                setFromDeptFaculty(false);
+                setFilterDept(null);
+                setFilterClass("");
                 setSidebarOpen(false);
               }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all duration-200 border ${
@@ -2116,6 +2128,7 @@ export default function AdminDashboard() {
                 setCurrentView("faculty");
                 setFilterDept(selectedDept);
                 setSearchTerm("");
+                setFromDeptFaculty(true);
               }}
               onViewTimetable={() => setStudentSubView("timetable")}
               onEditClass={() => {
@@ -2186,6 +2199,7 @@ export default function AdminDashboard() {
                                 setTempClass("");
                                 setFilterDept(null);
                                 setFilterClass("");
+                                setFromDeptFaculty(false);
                                 setShowFilterPopover(false);
                               }}
                               className="text-[10px] font-bold text-rose-500 hover:underline cursor-pointer"
@@ -2239,6 +2253,7 @@ export default function AdminDashboard() {
                             onClick={() => {
                               setFilterDept(tempDept);
                               setFilterClass(tempClass);
+                              setFromDeptFaculty(false);
                               setShowFilterPopover(false);
                             }}
                             className="w-full py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg transition-all cursor-pointer text-center"
