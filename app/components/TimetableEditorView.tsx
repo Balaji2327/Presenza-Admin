@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Calendar, Info } from "lucide-react";
 
 interface CourseMapping {
@@ -35,6 +35,8 @@ export default function TimetableEditorView({
   setCourseMappings,
   faculties,
 }: TimetableEditorViewProps) {
+  const [activeMobileDay, setActiveMobileDay] = useState<string>("Monday");
+
   return (
     <div className="bg-white border border-slate-200 p-4 lg:p-6 rounded-2xl shadow-sm space-y-4 lg:space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
@@ -42,7 +44,7 @@ export default function TimetableEditorView({
           <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
             <Calendar className="h-5 w-5 text-orange-500" /> Timetable Grid Editor
           </h3>
-          <p className="text-xs text-slate-400 mt-1 font-semibold">
+          <p className="text-xs text-slate-450 mt-1 font-semibold">
             Manually create or edit the Monday to Friday (Periods 1 to 7) timetable for {selectedClass || "selected class"} (SEM {selectedSemester})
           </p>
         </div>
@@ -73,18 +75,73 @@ export default function TimetableEditorView({
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto border border-slate-200 rounded-xl bg-slate-50/20 p-2 lg:p-4">
+          {/* Mobile Day Selector & Period Inputs */}
+          <div className="block sm:hidden space-y-4">
+            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80 items-center justify-between gap-1">
+              {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((day) => {
+                const isSelected = activeMobileDay === day;
+                const shortName = day.substring(0, 3);
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => setActiveMobileDay(day)}
+                    className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all text-center ${
+                      isSelected
+                        ? "bg-white text-orange-600 shadow-sm font-black"
+                        : "text-slate-500 hover:text-slate-800"
+                    }`}
+                  >
+                    {shortName}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="bg-slate-50/40 border border-slate-150 rounded-xl p-3 space-y-2.5">
+              {Array(7).fill(0).map((_, idx) => {
+                const timings = [
+                  "9:00 - 9:50",
+                  "9:50 - 10:40",
+                  "10:55 - 11:45",
+                  "11:45 - 12:35",
+                  "1:25 - 2:15",
+                  "2:15 - 3:05",
+                  "3:20 - 4:10"
+                ];
+                const row = timetableGrid[activeMobileDay] || Array(7).fill("");
+                return (
+                  <div key={idx} className="flex items-center gap-3 bg-white p-2.5 border border-slate-200 rounded-xl shadow-xs">
+                    <div className="w-20 shrink-0">
+                      <span className="block text-[10px] font-black text-slate-800 leading-none">Period {idx + 1}</span>
+                      <span className="text-[9px] font-semibold text-slate-400 mt-1 block">{timings[idx]}</span>
+                    </div>
+                    <input
+                      type="text"
+                      value={row[idx] || ""}
+                      placeholder="e.g. CNS"
+                      onChange={(e) => handleCellChange(activeMobileDay, idx, e.target.value)}
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-805 outline-none focus:border-orange-500"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden sm:block overflow-x-auto border border-slate-200 rounded-xl bg-slate-50/20 p-2 lg:p-4">
             <table className="w-full border-collapse text-left bg-white rounded-lg shadow-sm overflow-hidden border border-slate-200">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-100 text-slate-700 text-xs font-bold uppercase tracking-wider select-none">
                   <th className="p-4 w-32 border-r border-slate-200">Day</th>
-                  <th className="p-4 text-center border-r border-slate-200">Period 1<br/><span className="text-[10px] text-slate-400 normal-case font-normal">9:00 - 9:50</span></th>
-                  <th className="p-4 text-center border-r border-slate-200">Period 2<br/><span className="text-[10px] text-slate-400 normal-case font-normal">9:50 - 10:40</span></th>
-                  <th className="p-4 text-center border-r border-slate-200">Period 3<br/><span className="text-[10px] text-slate-400 normal-case font-normal">10:55 - 11:45</span></th>
-                  <th className="p-4 text-center border-r border-slate-200">Period 4<br/><span className="text-[10px] text-slate-400 normal-case font-normal">11:45 - 12:35</span></th>
-                  <th className="p-4 text-center border-r border-slate-200">Period 5<br/><span className="text-[10px] text-slate-400 normal-case font-normal">1:25 - 2:15</span></th>
-                  <th className="p-4 text-center border-r border-slate-200">Period 6<br/><span className="text-[10px] text-slate-400 normal-case font-normal">2:15 - 3:05</span></th>
-                  <th className="p-4 text-center">Period 7<br/><span className="text-[10px] text-slate-400 normal-case font-normal">3:20 - 4:10</span></th>
+                  <th className="p-4 text-center border-r border-slate-200">Period 1<br/><span className="text-[10px] text-slate-440 normal-case font-normal">9:00 - 9:50</span></th>
+                  <th className="p-4 text-center border-r border-slate-200">Period 2<br/><span className="text-[10px] text-slate-440 normal-case font-normal">9:50 - 10:40</span></th>
+                  <th className="p-4 text-center border-r border-slate-200">Period 3<br/><span className="text-[10px] text-slate-440 normal-case font-normal">10:55 - 11:45</span></th>
+                  <th className="p-4 text-center border-r border-slate-200">Period 4<br/><span className="text-[10px] text-slate-440 normal-case font-normal">11:45 - 12:35</span></th>
+                  <th className="p-4 text-center border-r border-slate-200">Period 5<br/><span className="text-[10px] text-slate-440 normal-case font-normal">1:25 - 2:15</span></th>
+                  <th className="p-4 text-center border-r border-slate-200">Period 6<br/><span className="text-[10px] text-slate-440 normal-case font-normal">2:15 - 3:05</span></th>
+                  <th className="p-4 text-center">Period 7<br/><span className="text-[10px] text-slate-440 normal-case font-normal">3:20 - 4:10</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">

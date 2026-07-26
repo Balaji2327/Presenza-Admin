@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Search, Users, CheckCircle, XCircle, Download, Info, Calendar } from "lucide-react";
+import { Search, Users, CheckCircle, XCircle, Download, Info, Calendar, Layers } from "lucide-react";
 import { Student, Department } from "../types";
 
 interface AttendanceSheetViewProps {
@@ -34,6 +34,7 @@ interface AttendanceSheetViewProps {
   setEditingStudent: (student: Student | null) => void;
   setOriginalStudentId: (id: string) => void;
   setSelectedDate: (date: string) => void;
+  onEditClass: () => void;
 }
 
 export default function AttendanceSheetView({
@@ -62,85 +63,109 @@ export default function AttendanceSheetView({
   setSelectedDate,
   onViewFaculty,
   onViewTimetable,
+  onEditClass,
 }: AttendanceSheetViewProps) {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Info cards */}
       {selectedClass && (
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-6">
-          <div className="bg-white border border-slate-200/80 p-4 lg:p-6 rounded-2xl flex items-center justify-between shadow-sm">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 sm:gap-3 lg:gap-4">
+          {/* Card 1: Total Students */}
+          <div className="bg-white border border-slate-200/85 p-2 sm:p-3.5 lg:p-4 rounded-xl flex items-center justify-between shadow-xs">
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                 Total Students
               </p>
-              <h3 className="text-xl lg:text-3xl font-black text-slate-800 mt-1 lg:mt-2">
+              <h3 className="text-xs sm:text-lg lg:text-xl font-black text-slate-800 mt-0.5">
                 {loadingStudents ? "..." : stats.totalStudents}
               </h3>
             </div>
-            <div className="p-4 bg-blue-50 text-blue-500 rounded-xl border border-blue-100">
-              <Users className="h-6 w-6" />
+            <div className="p-1 sm:p-2.5 bg-blue-50 text-blue-500 rounded-lg border border-blue-100 shrink-0">
+              <Users className="h-3.5 w-3.5 sm:h-5 w-5" />
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200/80 p-4 lg:p-6 rounded-2xl flex items-center justify-between shadow-sm">
+          {/* Card 2: Avg. Attendance */}
+          <div className="bg-white border border-slate-200/85 p-2 sm:p-3.5 lg:p-4 rounded-xl flex items-center justify-between shadow-xs">
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Avg. Attendance Rate
+              <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                Avg. Attendance
               </p>
-              <h3 className="text-xl lg:text-3xl font-black mt-1 lg:mt-2 bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
+              <h3 className="text-xs sm:text-lg lg:text-xl font-black mt-0.5 bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
                 {loadingAttendance ? "..." : `${stats.avgPresent}%`}
               </h3>
             </div>
-            <div className="p-4 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
-              <CheckCircle className="h-6 w-6" />
+            <div className="p-1 sm:p-2.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100 shrink-0">
+              <CheckCircle className="h-3.5 w-3.5 sm:h-5 w-5" />
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200/80 p-4 lg:p-6 rounded-2xl flex items-center justify-between shadow-sm">
+          {/* Card 3: Low Attendance Alert */}
+          <div className="bg-white border border-slate-200/85 p-2 sm:p-3.5 lg:p-4 rounded-xl flex items-center justify-between shadow-xs">
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Low Attendance Alert
+              <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                Low Attendance
               </p>
-              <h3 className="text-xl lg:text-3xl font-black text-rose-500 mt-1 lg:mt-2">
+              <h3 className="text-xs sm:text-lg lg:text-xl font-black text-rose-500 mt-0.5">
                 {loadingAttendance ? "..." : stats.attendanceWarningCount}
               </h3>
             </div>
-            <div className="p-4 bg-rose-50 text-rose-500 rounded-xl border border-rose-100">
-              <XCircle className="h-6 w-6" />
+            <div className="p-1 sm:p-2.5 bg-rose-50 text-rose-500 rounded-lg border border-rose-100 shrink-0">
+              <XCircle className="h-3.5 w-3.5 sm:h-5 w-5" />
             </div>
           </div>
 
+          {/* Card 4: View Faculty */}
           <div 
             onClick={onViewFaculty}
-            className="bg-white border border-slate-200/80 p-4 lg:p-6 rounded-2xl flex items-center justify-between shadow-sm cursor-pointer hover:border-indigo-400 hover:shadow-md transition-all group"
+            className="bg-white border border-slate-200/85 p-2 sm:p-3.5 lg:p-4 rounded-xl flex items-center justify-between shadow-xs cursor-pointer hover:border-indigo-400 hover:shadow-sm transition-all group"
           >
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider group-hover:text-indigo-500 transition-colors">
-                Department Faculty
+              <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider group-hover:text-indigo-500 transition-colors">
+                Dept Faculty
               </p>
-              <h3 className="text-base lg:text-lg font-black text-slate-800 mt-1 lg:mt-2 group-hover:text-indigo-600 transition-colors">
+              <h3 className="text-[9px] sm:text-xs font-bold text-slate-600 mt-0.5 group-hover:text-indigo-600 transition-colors">
                 View All
               </h3>
             </div>
-            <div className="p-4 bg-indigo-50 text-indigo-500 rounded-xl border border-indigo-100 group-hover:bg-indigo-500 group-hover:text-white transition-all">
-              <Users className="h-6 w-6" />
+            <div className="p-1 sm:p-2.5 bg-indigo-50 text-indigo-500 rounded-lg border border-indigo-100 group-hover:bg-indigo-500 group-hover:text-white transition-all shrink-0">
+              <Users className="h-3.5 w-3.5 sm:h-5 w-5" />
             </div>
           </div>
 
+          {/* Card 5: Manage Timetable */}
           <div 
             onClick={onViewTimetable}
-            className="bg-white border border-slate-200/80 p-4 lg:p-6 rounded-2xl flex items-center justify-between shadow-sm cursor-pointer hover:border-amber-400 hover:shadow-md transition-all group"
+            className="bg-white border border-slate-200/85 p-2 sm:p-3.5 lg:p-4 rounded-xl flex items-center justify-between shadow-xs cursor-pointer hover:border-amber-400 hover:shadow-sm transition-all group"
           >
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider group-hover:text-amber-500 transition-colors">
+              <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider group-hover:text-amber-500 transition-colors">
                 Class Timetable
               </p>
-              <h3 className="text-base lg:text-lg font-black text-slate-800 mt-1 lg:mt-2 group-hover:text-amber-600 transition-colors">
+              <h3 className="text-[9px] sm:text-xs font-bold text-slate-600 mt-0.5 group-hover:text-amber-600 transition-colors">
                 Manage
               </h3>
             </div>
-            <div className="p-4 bg-amber-50 text-amber-500 rounded-xl border border-amber-100 group-hover:bg-amber-500 group-hover:text-white transition-all">
-              <Calendar className="h-6 w-6" />
+            <div className="p-1 sm:p-2.5 bg-amber-50 text-amber-500 rounded-lg border border-amber-100 group-hover:bg-amber-500 group-hover:text-white transition-all shrink-0">
+              <Calendar className="h-3.5 w-3.5 sm:h-5 w-5" />
+            </div>
+          </div>
+
+          {/* Card 6: Class Settings */}
+          <div 
+            onClick={onEditClass}
+            className="bg-white border border-slate-200/85 p-2 sm:p-3.5 lg:p-4 rounded-xl flex items-center justify-between shadow-xs cursor-pointer hover:border-orange-400 hover:shadow-sm transition-all group"
+          >
+            <div>
+              <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider group-hover:text-orange-500 transition-colors">
+                Class Settings
+              </p>
+              <h3 className="text-[9px] sm:text-xs font-bold text-slate-600 mt-0.5 group-hover:text-orange-600 transition-colors">
+                Class Editor
+              </h3>
+            </div>
+            <div className="p-1 sm:p-2.5 bg-orange-50 text-orange-500 rounded-lg border border-orange-100 group-hover:bg-orange-500 group-hover:text-white transition-all shrink-0">
+              <Layers className="h-3.5 w-3.5 sm:h-5 w-5" />
             </div>
           </div>
         </div>
@@ -244,72 +269,100 @@ export default function AttendanceSheetView({
               No students found.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto sm:block">
               {activeTab === "overview" ? (
-                <table className="w-full border-collapse text-left">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider bg-slate-50/50 select-none">
-                      <th onClick={() => handleSort("id")} className="p-4 pl-6 cursor-pointer hover:text-slate-700 transition-colors">
-                        <span className="inline-flex items-center">ID {renderSortIndicator("id")}</span>
-                      </th>
-                      <th onClick={() => handleSort("name")} className="p-4 cursor-pointer hover:text-slate-700 transition-colors">
-                        <span className="inline-flex items-center">Name {renderSortIndicator("name")}</span>
-                      </th>
-                      <th onClick={() => handleSort("present")} className="p-4 text-center cursor-pointer hover:text-slate-700 transition-colors">
-                        <span className="inline-flex items-center justify-center w-full">Present % {renderSortIndicator("present")}</span>
-                      </th>
-                      <th onClick={() => handleSort("od")} className="p-4 text-center cursor-pointer hover:text-slate-700 transition-colors">
-                        <span className="inline-flex items-center justify-center w-full">OD % {renderSortIndicator("od")}</span>
-                      </th>
-                      <th onClick={() => handleSort("absent")} className="p-4 text-center cursor-pointer hover:text-slate-700 transition-colors">
-                        <span className="inline-flex items-center justify-center w-full">Absent % {renderSortIndicator("absent")}</span>
-                      </th>
-                      <th className="p-4 pr-6 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
+                <>
+                  {/* Mobile Overview View */}
+                  <div className="block sm:hidden divide-y divide-slate-100">
                     {filteredStudents.map((student) => {
                       const p = Math.round(studentAttendance[student.id]?.P ?? 0);
                       const a = Math.round(studentAttendance[student.id]?.A ?? 0);
                       const od = Math.round(studentAttendance[student.id]?.OD ?? 0);
                       return (
-                        <tr key={student.id} className={`group hover:bg-slate-50/40 transition-colors ${selectedStudent?.id === student.id ? "bg-orange-50/20" : ""}`}>
-                          <td className="p-4 pl-6 font-mono text-xs font-semibold text-slate-500">{student.id}</td>
-                          <td className="p-4 font-bold text-slate-800 group-hover:text-orange-600 transition-colors">{student.name}</td>
-                          <td className="p-4 text-center font-bold text-emerald-600">{p}%</td>
-                          <td className="p-4 text-center font-bold text-blue-600">{od}%</td>
-                          <td className="p-4 text-center font-bold text-rose-600">{a}%</td>
-                          <td className="p-4 pr-6 text-right">
+                        <div key={student.id} className="p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-bold text-slate-800 text-sm">{student.name}</h4>
+                              <span className="font-mono text-[10px] font-bold text-slate-400">{student.id}</span>
+                            </div>
                             <button onClick={() => {
                               setEditingStudent(student);
                               setOriginalStudentId(student.id);
-                            }} className="px-3 py-1.5 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-600 hover:shadow-sm text-xs font-bold rounded-lg transition-all border border-slate-200/80 hover:border-orange-400 cursor-pointer">
+                            }} className="px-3 py-1 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-650 hover:border-orange-400 text-xs font-bold rounded-lg border border-slate-200/80 transition-all cursor-pointer">
                               Edit
                             </button>
-                          </td>
-                        </tr>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 text-center bg-slate-50/50 p-2 rounded-xl border border-slate-100">
+                            <div>
+                              <span className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Present</span>
+                              <span className="text-xs font-black text-emerald-600">{p}%</span>
+                            </div>
+                            <div>
+                              <span className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">OD</span>
+                              <span className="text-xs font-black text-blue-600">{od}%</span>
+                            </div>
+                            <div>
+                              <span className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Absent</span>
+                              <span className="text-xs font-black text-rose-500">{a}%</span>
+                            </div>
+                          </div>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </div>
+
+                  {/* Desktop Table View */}
+                  <table className="hidden sm:table w-full border-collapse text-left">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider bg-slate-50/50 select-none">
+                        <th onClick={() => handleSort("id")} className="p-4 pl-6 cursor-pointer hover:text-slate-700 transition-colors">
+                          <span className="inline-flex items-center">ID {renderSortIndicator("id")}</span>
+                        </th>
+                        <th onClick={() => handleSort("name")} className="p-4 cursor-pointer hover:text-slate-700 transition-colors">
+                          <span className="inline-flex items-center">Name {renderSortIndicator("name")}</span>
+                        </th>
+                        <th onClick={() => handleSort("present")} className="p-4 text-center cursor-pointer hover:text-slate-700 transition-colors">
+                          <span className="inline-flex items-center justify-center w-full">Present % {renderSortIndicator("present")}</span>
+                        </th>
+                        <th onClick={() => handleSort("od")} className="p-4 text-center cursor-pointer hover:text-slate-700 transition-colors">
+                          <span className="inline-flex items-center justify-center w-full">OD % {renderSortIndicator("od")}</span>
+                        </th>
+                        <th onClick={() => handleSort("absent")} className="p-4 text-center cursor-pointer hover:text-slate-700 transition-colors">
+                          <span className="inline-flex items-center justify-center w-full">Absent % {renderSortIndicator("absent")}</span>
+                        </th>
+                        <th className="p-4 pr-6 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredStudents.map((student) => {
+                        const p = Math.round(studentAttendance[student.id]?.P ?? 0);
+                        const a = Math.round(studentAttendance[student.id]?.A ?? 0);
+                        const od = Math.round(studentAttendance[student.id]?.OD ?? 0);
+                        return (
+                          <tr key={student.id} className={`group hover:bg-slate-50/40 transition-colors ${selectedStudent?.id === student.id ? "bg-orange-50/20" : ""}`}>
+                            <td className="p-4 pl-6 font-mono text-xs font-semibold text-slate-500">{student.id}</td>
+                            <td className="p-4 font-bold text-slate-800 group-hover:text-orange-600 transition-colors">{student.name}</td>
+                            <td className="p-4 text-center font-bold text-emerald-600">{p}%</td>
+                            <td className="p-4 text-center font-bold text-blue-600">{od}%</td>
+                            <td className="p-4 text-center font-bold text-rose-600">{a}%</td>
+                            <td className="p-4 pr-6 text-right">
+                              <button onClick={() => {
+                                setEditingStudent(student);
+                                setOriginalStudentId(student.id);
+                              }} className="px-3 py-1.5 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-600 hover:shadow-sm text-xs font-bold rounded-lg transition-all border border-slate-200/80 hover:border-orange-400 cursor-pointer">
+                                Edit
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </>
               ) : (
-                <table className="w-full border-collapse text-left">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider bg-slate-50/50 select-none">
-                      <th onClick={() => handleSort("name")} className="p-4 pl-6 cursor-pointer hover:text-slate-700 transition-colors">
-                        <span className="inline-flex items-center">Name {renderSortIndicator("name")}</span>
-                      </th>
-                      <th className="p-4 text-center">1st Hour</th>
-                      <th className="p-4 text-center">2nd Hour</th>
-                      <th className="p-4 text-center">3rd Hour</th>
-                      <th className="p-4 text-center">4th Hour</th>
-                      <th className="p-4 text-center">5th Hour</th>
-                      <th className="p-4 text-center">6th Hour</th>
-                      <th className="p-4 text-center">7th Hour</th>
-                      <th className="p-4 pr-6 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
+                <>
+                  {/* Mobile Daily Cards View */}
+                  <div className="block sm:hidden divide-y divide-slate-100">
                     {filteredStudents.map((student) => {
                       const dailyLogs = getAttendanceSummaryForDate(student.id, selectedDate) || [];
                       const hourlyStatus = Array(7).fill(null);
@@ -319,40 +372,106 @@ export default function AttendanceSheetView({
                         }
                       });
                       return (
-                        <tr key={student.id} className={`group hover:bg-slate-50/40 transition-colors ${selectedStudent?.id === student.id ? "bg-orange-50/20" : ""}`}>
-                          <td className="p-4 pl-6 font-bold text-slate-800 group-hover:text-orange-600 transition-colors">
+                        <div key={student.id} className="p-4 space-y-3">
+                          <div className="flex items-center justify-between">
                             <div>
-                              <div className="truncate max-w-[200px]">{student.name}</div>
-                              <div className="text-[10px] font-mono font-semibold text-slate-400 mt-0.5">{student.id}</div>
+                              <h4 className="font-bold text-slate-800 text-sm">{student.name}</h4>
+                              <span className="font-mono text-[10px] font-bold text-slate-400">{student.id}</span>
                             </div>
-                          </td>
-                          {hourlyStatus.map((item, idx) => {
-                            const isP = item?.status === "P";
-                            const isOD = item?.status === "OD";
-                            return (
-                              <td key={idx} className="p-4 text-center">
-                                {item ? (
-                                  <span className={`inline-block px-2 py-1 rounded-lg text-xs font-bold ${
-                                    isP ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
-                                    isOD ? "bg-blue-50 text-blue-600 border border-blue-100" :
-                                    "bg-rose-50 text-rose-600 border border-rose-100"
-                                  }`}>
-                                    {item.status}
-                                  </span>
-                                ) : "-"}
-                              </td>
-                            );
-                          })}
-                          <td className="p-4 pr-6 text-right">
-                            <button onClick={() => setSelectedStudent(student)} className="px-3 py-1.5 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-600 hover:shadow-sm text-xs font-bold rounded-lg transition-all border border-slate-200/80 hover:border-orange-400 cursor-pointer">
+                            <button onClick={() => setSelectedStudent(student)} className="px-3 py-1 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-650 hover:border-orange-400 text-xs font-bold rounded-lg border border-slate-200/80 transition-all cursor-pointer">
                               Logs
                             </button>
-                          </td>
-                        </tr>
+                          </div>
+                          {/* 7 Periods mini indicators */}
+                          <div className="grid grid-cols-7 gap-1 text-center bg-slate-50/50 p-2 rounded-xl border border-slate-100 select-none">
+                            {hourlyStatus.map((item, idx) => {
+                              const isP = item?.status === "P";
+                              const isOD = item?.status === "OD";
+                              return (
+                                <div key={idx} className="flex flex-col items-center">
+                                  <span className="text-[7.5px] font-black text-slate-405 mb-0.5 leading-none">H{idx + 1}</span>
+                                  {item ? (
+                                    <span className={`inline-block w-5 h-5 flex items-center justify-center rounded-md text-[9px] font-black leading-none ${
+                                      isP ? "bg-emerald-100 text-emerald-700" :
+                                      isOD ? "bg-blue-100 text-blue-700" :
+                                      "bg-rose-100 text-rose-700"
+                                    }`}>
+                                      {item.status}
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-300 font-bold">-</span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </div>
+
+                  {/* Desktop Daily Table View */}
+                  <table className="hidden sm:table w-full border-collapse text-left">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider bg-slate-50/50 select-none">
+                        <th onClick={() => handleSort("name")} className="p-4 pl-6 cursor-pointer hover:text-slate-700 transition-colors">
+                          <span className="inline-flex items-center">Name {renderSortIndicator("name")}</span>
+                        </th>
+                        <th className="p-4 text-center">1st Hour</th>
+                        <th className="p-4 text-center">2nd Hour</th>
+                        <th className="p-4 text-center">3rd Hour</th>
+                        <th className="p-4 text-center">4th Hour</th>
+                        <th className="p-4 text-center">5th Hour</th>
+                        <th className="p-4 text-center">6th Hour</th>
+                        <th className="p-4 text-center">7th Hour</th>
+                        <th className="p-4 pr-6 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredStudents.map((student) => {
+                        const dailyLogs = getAttendanceSummaryForDate(student.id, selectedDate) || [];
+                        const hourlyStatus = Array(7).fill(null);
+                        dailyLogs.forEach((item) => {
+                          if (item.hour >= 1 && item.hour <= 7) {
+                            hourlyStatus[item.hour - 1] = item;
+                          }
+                        });
+                        return (
+                          <tr key={student.id} className={`group hover:bg-slate-50/40 transition-colors ${selectedStudent?.id === student.id ? "bg-orange-50/20" : ""}`}>
+                            <td className="p-4 pl-6 font-bold text-slate-800 group-hover:text-orange-600 transition-colors">
+                              <div>
+                                <div className="truncate max-w-[200px]">{student.name}</div>
+                                <div className="text-[10px] font-mono font-semibold text-slate-400 mt-0.5">{student.id}</div>
+                              </div>
+                            </td>
+                            {hourlyStatus.map((item, idx) => {
+                              const isP = item?.status === "P";
+                              const isOD = item?.status === "OD";
+                              return (
+                                <td key={idx} className="p-4 text-center">
+                                  {item ? (
+                                    <span className={`inline-block px-2 py-1 rounded-lg text-xs font-bold ${
+                                      isP ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
+                                      isOD ? "bg-blue-50 text-blue-600 border border-blue-100" :
+                                      "bg-rose-50 text-rose-600 border border-rose-100"
+                                    }`}>
+                                      {item.status}
+                                    </span>
+                                  ) : "-"}
+                                </td>
+                              );
+                            })}
+                            <td className="p-4 pr-6 text-right">
+                              <button onClick={() => setSelectedStudent(student)} className="px-3 py-1.5 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-650 hover:shadow-sm text-xs font-bold rounded-lg transition-all border border-slate-200/80 hover:border-orange-400 cursor-pointer">
+                                Logs
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </>
               )}
             </div>
           )}

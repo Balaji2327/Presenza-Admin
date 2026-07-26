@@ -44,7 +44,8 @@ import {
   Newspaper,
   Trash2,
   Menu,
-  PanelLeftClose
+  PanelLeftClose,
+  Edit
 } from "lucide-react";
 
 interface Department {
@@ -150,11 +151,16 @@ export default function AdminDashboard() {
   const [newDeptId, setNewDeptId] = useState("");
   const [newDeptName, setNewDeptName] = useState("");
   const [savingDept, setSavingDept] = useState(false);
+  const [isDeptEditorOpen, setIsDeptEditorOpen] = useState(false);
+  const [editingDeptId, setEditingDeptId] = useState("");
+  const [newDeptNameInput, setNewDeptNameInput] = useState("");
 
   const [isAddingClass, setIsAddingClass] = useState(false);
   const [targetDeptId, setTargetDeptId] = useState("");
   const [newClassName, setNewClassName] = useState("");
   const [savingClass, setSavingClass] = useState(false);
+  const [isClassEditorOpen, setIsClassEditorOpen] = useState(false);
+  const [newClassNameInput, setNewClassNameInput] = useState("");
 
   // Timetable states
   const [timetableGrid, setTimetableGrid] = useState<Record<string, string[]>>({
@@ -285,6 +291,42 @@ export default function AdminDashboard() {
     }
     fetchNews();
   }, []);
+
+  const [classCurrentSemester, setClassCurrentSemester] = useState<string>("I");
+  const [newClassSemesterInput, setNewClassSemesterInput] = useState<string>("I");
+
+  useEffect(() => {
+    if (!selectedClass || !selectedDept) return;
+    const deptId = selectedDept.id;
+
+    async function fetchClassMetadata() {
+      try {
+        const classDocRef = doc(
+          db,
+          "colleges",
+          "departments",
+          "all_departments",
+          deptId,
+          "clasees",
+          selectedClass
+        );
+        const docSnap = await getDoc(classDocRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const currentSem = data.currentSemester || "I";
+          setClassCurrentSemester(currentSem);
+          setSelectedSemester(currentSem);
+        } else {
+          setClassCurrentSemester("I");
+          setSelectedSemester("I");
+        }
+      } catch (err) {
+        console.error("Error fetching class metadata:", err);
+      }
+    }
+
+    fetchClassMetadata();
+  }, [selectedClass, selectedDept?.id]);
 
   // Fetch Students and their attendance when selectedClass or selectedSemester changes
   useEffect(() => {
@@ -537,6 +579,7 @@ export default function AdminDashboard() {
       "Are you sure you want to delete this department? All its classes will also be deleted.",
       async () => {
         try {
+          setIsDeptEditorOpen(false);
           const deptDocRef = doc(db, "colleges", "departments", "all_departments", deptId);
           await deleteDoc(deptDocRef);
           
@@ -554,12 +597,45 @@ export default function AdminDashboard() {
     );
   };
 
+  const handleRenameDept = async (deptId: string, newDeptName: string) => {
+    if (!newDeptName.trim()) {
+      showPopup("warning", "Warning", "Department name cannot be empty.");
+      return;
+    }
+    
+    try {
+      setSavingDept(true);
+      const deptDocRef = doc(db, "colleges", "departments", "all_departments", deptId);
+      await updateDoc(deptDocRef, { name: newDeptName.trim() });
+      
+      setDepartments(prev => prev.map(d => {
+        if (d.id === deptId) {
+          return { ...d, name: newDeptName.trim() };
+        }
+        return d;
+      }));
+
+      if (selectedDept?.id === deptId) {
+        setSelectedDept(prev => prev ? { ...prev, name: newDeptName.trim() } : null);
+      }
+
+      showPopup("success", "Success", "Department renamed successfully!");
+      setIsDeptEditorOpen(false);
+    } catch (err: any) {
+      console.error("Error renaming department:", err);
+      showPopup("error", "Error", "Failed to rename department: " + err.message);
+    } finally {
+      setSavingDept(false);
+    }
+  };
+
   const handleDeleteClass = async (deptId: string, className: string) => {
     showConfirm(
       "Delete Class",
       "Are you sure you want to delete this class?",
       async () => {
         try {
+          setIsClassEditorOpen(false);
           // 1. Remove from department's classes array
           const dept = departments.find(d => d.id === deptId);
           if (dept) {
@@ -589,6 +665,126 @@ export default function AdminDashboard() {
         }
       }
     );
+  };
+
+  const handleSaveClassSettings = async (
+    deptId: string,
+    oldClassName: string,
+    newClassName: string,
+    newSemester: string
+  ) => {
+    if (!newClassName.trim()) {
+      showPopup("warning", "Warning", "Class name cannot be empty.");
+      return;
+    }
+
+    try {
+      setSavingClass(true);
+      const isNameChanged = oldClassName !== newClassName;
+      const isSemesterChanged = classCurrentSemester !== newSemester;
+
+      if (!isNameChanged && !isSemesterChanged) {
+        setIsClassEditorOpen(false);
+        return;
+      }
+
+      // Check if new name already exists
+      const dept = departments.find(d => d.id === deptId);
+      if (isNameChanged && dept && (dept.classes || []).includes(newClassName)) {
+        showPopup("warning", "Warning", `A class named ${newClassName} already exists in this department.`);
+        setSavingClass(false);
+        return;
+      }
+
+      // 1. Update the classes array in the department document (if name changed)
+      if (isNameChanged && dept) {
+        const updatedClasses = (dept.classes || []).map(c => c === oldClassName ? newClassName : c);
+        const deptDocRef = doc(db, "colleges", "departments", "all_departments", deptId);
+        await updateDoc(deptDocRef, { classes: updatedClasses });
+        
+        setDepartments(prev => prev.map(d => {
+          if (d.id === deptId) {
+            return { ...d, classes: updatedClasses };
+          }
+          return d;
+        }));
+      }
+
+      // 2. Update/Create the class document in 'clasees' subcollection
+      const oldClassDocRef = doc(db, "colleges", "departments", "all_departments", deptId, "clasees", oldClassName);
+      const newClassDocRef = doc(db, "colleges", "departments", "all_departments", deptId, "clasees", newClassName);
+      
+      const oldClassSnap = await getDoc(oldClassDocRef);
+      const classData = oldClassSnap.exists() ? oldClassSnap.data() : {};
+      const updatedClassData = {
+        ...classData,
+        currentSemester: newSemester
+      };
+
+      if (isNameChanged) {
+        await setDoc(newClassDocRef, updatedClassData);
+        await deleteDoc(oldClassDocRef);
+      } else {
+        await setDoc(oldClassDocRef, updatedClassData);
+      }
+
+      // 3. Update all students in this class
+      const studentsRef = collection(db, "colleges", "students", "all_students");
+      const studentsQuery = query(studentsRef, where("class", "==", oldClassName));
+      const studentsSnap = await getDocs(studentsQuery);
+      
+      if (!studentsSnap.empty) {
+        const batch = writeBatch(db);
+        studentsSnap.docs.forEach((docSnap) => {
+          const updateFields: any = {};
+          if (isNameChanged) updateFields.class = newClassName;
+          if (isSemesterChanged) updateFields.semester = newSemester;
+          batch.update(docSnap.ref, updateFields);
+        });
+        await batch.commit();
+      }
+
+      // 4. Update all faculties assigned to this class (if name changed)
+      if (isNameChanged) {
+        const facultiesRef = collection(db, "colleges", "faculties", "all_faculties");
+        const facultiesSnap = await getDocs(facultiesRef);
+        const facultyBatch = writeBatch(db);
+        let facultyNeedsCommit = false;
+
+        facultiesSnap.docs.forEach((docSnap) => {
+          const data = docSnap.data();
+          const assignedClasses = data.classes || [];
+          if (assignedClasses.includes(oldClassName)) {
+            const updatedClasses = assignedClasses.map((c: string) => c === oldClassName ? newClassName : c);
+            facultyBatch.update(docSnap.ref, { classes: updatedClasses });
+            facultyNeedsCommit = true;
+          }
+        });
+
+        if (facultyNeedsCommit) {
+          await facultyBatch.commit();
+        }
+      }
+
+      // 5. Update local states
+      setClassCurrentSemester(newSemester);
+      setSelectedSemester(newSemester);
+      
+      if (isNameChanged && selectedClass === oldClassName && selectedDept?.id === deptId) {
+        setSelectedClass(newClassName);
+      }
+      
+      await fetchAllStudents();
+      await fetchFaculties();
+      setIsClassEditorOpen(false);
+
+      showPopup("success", "Success", "Class settings updated successfully!");
+    } catch (err: any) {
+      console.error("Error updating class settings:", err);
+      showPopup("error", "Error", "Failed to update class settings: " + err.message);
+    } finally {
+      setSavingClass(false);
+    }
   };
 
   // Fetch data on login status
@@ -1483,11 +1679,15 @@ export default function AdminDashboard() {
                         />
                       </button>
                       <button
-                        onClick={() => handleDeleteDept(dept.id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                        title="Delete Department"
+                        onClick={() => {
+                          setEditingDeptId(dept.id);
+                          setNewDeptNameInput(dept.name);
+                          setIsDeptEditorOpen(true);
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-colors cursor-pointer"
+                        title="Edit Department"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Edit className="h-3.5 w-3.5" />
                       </button>
                     </div>
 
@@ -1508,19 +1708,12 @@ export default function AdminDashboard() {
                                     setStudentSubView("attendance");
                                     setSidebarOpen(false);
                                   }}
-                                  className={`flex-1 flex items-center gap-2 px-3 py-2 text-[11px] font-bold cursor-pointer outline-none ${isActiveClass ? "text-white" : "text-slate-500"}`}
+                                  className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold cursor-pointer outline-none ${isActiveClass ? "text-white" : "text-slate-500"}`}
                                 >
                                   <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${
                                     isActiveClass ? "bg-white" : "bg-slate-300"
                                   }`} />
                                   {cls}
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteClass(dept.id, cls)}
-                                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${isActiveClass ? "text-white/80 hover:text-white hover:bg-white/20" : "text-slate-400 hover:text-rose-500 hover:bg-rose-50"}`}
-                                  title="Delete Class"
-                                >
-                                  <Trash2 className="h-3 w-3" />
                                 </button>
                               </div>
                             );
@@ -1763,7 +1956,8 @@ export default function AdminDashboard() {
                         email: "",
                         class: defaultClass,
                         department: defaultDept?.id || "",
-                        mentor_id: ""
+                        mentor_id: "",
+                        semester: classCurrentSemester || "I"
                       });
                     }}
                     className="px-3 sm:px-4 py-2 sm:py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer whitespace-nowrap"
@@ -1914,7 +2108,7 @@ export default function AdminDashboard() {
               renderSortIndicator={renderSortIndicator}
               getAttendanceSummaryForDate={getAttendanceSummaryForDate}
               selectedSemester={selectedSemester}
-              setSelectedSemester={handleSemesterChange}
+              setSelectedSemester={setSelectedSemester}
               setEditingStudent={setEditingStudent}
               setOriginalStudentId={setOriginalStudentId}
               setSelectedDate={setSelectedDate}
@@ -1924,6 +2118,11 @@ export default function AdminDashboard() {
                 setSearchTerm("");
               }}
               onViewTimetable={() => setStudentSubView("timetable")}
+              onEditClass={() => {
+                setNewClassNameInput(selectedClass);
+                setNewClassSemesterInput(classCurrentSemester);
+                setIsClassEditorOpen(true);
+              }}
             />
           )}
 
@@ -2383,6 +2582,158 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* Department Editor Modal */}
+      {isDeptEditorOpen && editingDeptId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-6 border-b border-slate-100 bg-slate-50/20 flex items-start justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Department Settings
+                </span>
+                <h4 className="text-lg font-bold text-slate-800 mt-1">
+                  Department Editor
+                </h4>
+                <p className="text-xs text-slate-450 mt-0.5 font-semibold">
+                  Department ID: {editingDeptId}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsDeptEditorOpen(false)}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-250 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <div className="p-6 space-y-4">
+              {/* Rename Section */}
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Rename Department</label>
+                <input
+                  type="text"
+                  value={newDeptNameInput}
+                  onChange={(e) => setNewDeptNameInput(e.target.value)}
+                  placeholder="e.g. Computer Science"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => handleRenameDept(editingDeptId, newDeptNameInput)}
+                  disabled={savingDept}
+                  className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer text-center disabled:opacity-50"
+                >
+                  {savingDept ? "Saving..." : "Save Department Name"}
+                </button>
+              </div>
+
+              {/* Danger Zone Divider */}
+              <div className="border-t border-slate-150 pt-4 mt-2">
+                <h5 className="text-xs font-extrabold text-rose-500 uppercase tracking-wider mb-1.5">Danger Zone</h5>
+                <p className="text-[10px] text-slate-450 mb-3 font-semibold leading-relaxed">
+                  Permanently delete this department. All classes and student timetables associated with it will also be deleted.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteDept(editingDeptId)}
+                  className="w-full py-2 bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white border border-rose-100 hover:border-rose-500 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
+                >
+                  Delete Department
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Class Editor Modal */}
+      {isClassEditorOpen && selectedClass && selectedDept && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-6 border-b border-slate-100 bg-slate-50/20 flex items-start justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Class Settings
+                </span>
+                <h4 className="text-lg font-bold text-slate-800 mt-1">
+                  Class Editor
+                </h4>
+                <p className="text-xs text-slate-450 mt-0.5 font-semibold">
+                  Department: {selectedDept.name}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsClassEditorOpen(false)}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-250 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <div className="p-6 space-y-4">
+              {/* Rename Section */}
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Rename Class</label>
+                <input
+                  type="text"
+                  value={newClassNameInput}
+                  onChange={(e) => setNewClassNameInput(e.target.value)}
+                  placeholder="e.g. SEC25CJ013"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                />
+              </div>
+
+              {/* Semester Selection */}
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Current Semester</label>
+                <select
+                  value={newClassSemesterInput}
+                  onChange={(e) => setNewClassSemesterInput(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500 cursor-pointer"
+                >
+                  {["I", "II", "III", "IV", "V", "VI", "VII", "VIII"].map((sem) => (
+                    <option key={sem} value={sem}>{sem}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => handleSaveClassSettings(selectedDept.id, selectedClass, newClassNameInput, newClassSemesterInput)}
+                  disabled={savingClass}
+                  className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer text-center disabled:opacity-50"
+                >
+                  {savingClass ? "Saving..." : "Save Class Settings"}
+                </button>
+              </div>
+
+              {/* Danger Zone Divider */}
+              <div className="border-t border-slate-150 pt-4 mt-2">
+                <h5 className="text-xs font-extrabold text-rose-500 uppercase tracking-wider mb-1.5">Danger Zone</h5>
+                <p className="text-[10px] text-slate-450 mb-3 font-semibold leading-relaxed">
+                  Permanently delete this class, its timetable settings, and all associated configurations. This action is irreversible.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteClass(selectedDept.id, selectedClass)}
+                  className="w-full py-2 bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white border border-rose-100 hover:border-rose-500 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
+                >
+                  Delete Class
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit Student Modal */}
       {editingStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
@@ -2503,10 +2854,10 @@ export default function AdminDashboard() {
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Semester</label>
                   <select
-                    value={editingStudent.semester || "I"}
+                    value={editingStudent.semester || classCurrentSemester || "I"}
                     onChange={(e) => setEditingStudent({ ...editingStudent, semester: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500 cursor-pointer"
-                    required
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500 cursor-not-allowed opacity-75"
+                    disabled
                   >
                     {["I", "II", "III", "IV", "V", "VI", "VII", "VIII"].map((sem) => (
                       <option key={sem} value={sem}>{sem}</option>
@@ -2812,10 +3163,10 @@ export default function AdminDashboard() {
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Semester *</label>
                   <select
-                    value={newStudent.semester || "I"}
+                    value={newStudent.semester || classCurrentSemester || "I"}
                     onChange={(e) => setNewStudent({ ...newStudent, semester: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500 cursor-pointer"
-                    required
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500 cursor-not-allowed opacity-75"
+                    disabled
                   >
                     {["I", "II", "III", "IV", "V", "VI", "VII", "VIII"].map((sem) => (
                       <option key={sem} value={sem}>{sem}</option>
