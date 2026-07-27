@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Search, Users, CheckCircle, XCircle, Download, Info, Calendar, Layers } from "lucide-react";
 import { Student, Department } from "../types";
 
@@ -65,6 +65,63 @@ export default function AttendanceSheetView({
   onViewTimetable,
   onEditClass,
 }: AttendanceSheetViewProps) {
+  const [filterType] = useState<"single" | "range">("range");
+  const [fromDate, setFromDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  });
+  const [toDate, setToDate] = useState<string>(() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  });
+
+  const getDatesInRange = (startStr: string, endStr: string) => {
+    const dates: string[] = [];
+    let start = new Date(startStr);
+    const end = new Date(endStr);
+    while (start <= end) {
+      const dd = String(start.getDate()).padStart(2, "0");
+      const mm = String(start.getMonth() + 1).padStart(2, "0");
+      const yyyy = start.getFullYear();
+      dates.push(`${dd}-${mm}-${yyyy}`);
+      start.setDate(start.getDate() + 1);
+    }
+    return dates;
+  };
+
+  const activeDates = getDatesInRange(fromDate, toDate);
+
+  const getDaySummary = (studentId: string, dateStr: string) => {
+    const record = studentAttendance[studentId];
+    const dailyAttendance = record?.[dateStr];
+    if (!dailyAttendance || typeof dailyAttendance !== "object") return null;
+
+    let pCount = 0;
+    let aCount = 0;
+    let odCount = 0;
+    let totalCount = 0;
+    
+    Object.values(dailyAttendance).forEach((hourEntry: any) => {
+      if (hourEntry && typeof hourEntry === "object") {
+        Object.values(hourEntry).forEach((status: any) => {
+          totalCount++;
+          if (status === "P") pCount++;
+          else if (status === "A") aCount++;
+          else if (status === "OD") odCount++;
+        });
+      }
+    });
+
+    if (totalCount === 0) return null;
+    return { pCount, aCount, odCount, totalCount };
+  };
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Info cards */}
@@ -208,28 +265,6 @@ export default function AttendanceSheetView({
                   >
                     Daily Grid
                   </button>
-                  {activeTab === "daily" && (
-                    <input
-                      type="date"
-                      value={(() => {
-                        const parts = selectedDate.split("-");
-                        if (parts.length === 3) {
-                          return `${parts[2]}-${parts[1]}-${parts[0]}`;
-                        }
-                        return "";
-                      })()}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val) {
-                          const parts = val.split("-");
-                          if (parts.length === 3) {
-                            setSelectedDate(`${parts[2]}-${parts[1]}-${parts[0]}`);
-                          }
-                        }
-                      }}
-                      className="bg-transparent text-[10px] font-bold text-slate-700 outline-none border-none cursor-pointer focus:ring-0 ml-2 p-0"
-                    />
-                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -258,6 +293,32 @@ export default function AttendanceSheetView({
               </div>
             </div>
           </div>
+
+          {/* Secondary filter bar for Daily Grid Date Range */}
+          {activeTab === "daily" && (
+            <div className="flex flex-wrap items-center gap-4 bg-slate-50/50 border-b border-slate-100 p-4 text-xs font-semibold select-none">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">From</span>
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 font-bold outline-none cursor-pointer focus:border-slate-300"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">To</span>
+                  <input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    className="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 font-bold outline-none cursor-pointer focus:border-slate-300"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {loadingStudents ? (
             <div className="p-12 text-center text-slate-400 font-medium">
@@ -364,49 +425,84 @@ export default function AttendanceSheetView({
                   {/* Mobile Daily Cards View */}
                   <div className="block sm:hidden divide-y divide-slate-100">
                     {filteredStudents.map((student) => {
-                      const dailyLogs = getAttendanceSummaryForDate(student.id, selectedDate) || [];
-                      const hourlyStatus = Array(7).fill(null);
-                      dailyLogs.forEach((item) => {
-                        if (item.hour >= 1 && item.hour <= 7) {
-                          hourlyStatus[item.hour - 1] = item;
-                        }
-                      });
-                      return (
-                        <div key={student.id} className="p-4 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="font-bold text-slate-800 text-sm">{student.name}</h4>
-                              <span className="font-mono text-[10px] font-bold text-slate-400">{student.id}</span>
+                      if (filterType === "single") {
+                        const dailyLogs = getAttendanceSummaryForDate(student.id, selectedDate) || [];
+                        const hourlyStatus = Array(7).fill(null);
+                        dailyLogs.forEach((item) => {
+                          if (item.hour >= 1 && item.hour <= 7) {
+                            hourlyStatus[item.hour - 1] = item;
+                          }
+                        });
+                        return (
+                          <div key={student.id} className="p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h4 className="font-bold text-slate-800 text-sm">{student.name}</h4>
+                                <span className="font-mono text-[10px] font-bold text-slate-400">{student.id}</span>
+                              </div>
+                              <button onClick={() => setSelectedStudent(student)} className="px-3 py-1 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-655 hover:border-orange-400 text-xs font-bold rounded-lg border border-slate-200/80 transition-all cursor-pointer">
+                                Logs
+                              </button>
                             </div>
-                            <button onClick={() => setSelectedStudent(student)} className="px-3 py-1 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-650 hover:border-orange-400 text-xs font-bold rounded-lg border border-slate-200/80 transition-all cursor-pointer">
-                              Logs
-                            </button>
+                            {/* 7 Periods mini indicators */}
+                            <div className="grid grid-cols-7 gap-1 text-center bg-slate-50/50 p-2 rounded-xl border border-slate-100 select-none">
+                              {hourlyStatus.map((item, idx) => {
+                                const isP = item?.status === "P";
+                                const isOD = item?.status === "OD";
+                                return (
+                                  <div key={idx} className="flex flex-col items-center">
+                                    <span className="text-[7.5px] font-black text-slate-405 mb-0.5 leading-none">H{idx + 1}</span>
+                                    {item ? (
+                                      <span className={`inline-block w-5 h-5 flex items-center justify-center rounded-md text-[9px] font-black leading-none ${
+                                        isP ? "bg-emerald-100 text-emerald-700" :
+                                        isOD ? "bg-blue-100 text-blue-700" :
+                                        "bg-rose-100 text-rose-700"
+                                      }`}>
+                                        {item.status}
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-300 font-bold">-</span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
-                          {/* 7 Periods mini indicators */}
-                          <div className="grid grid-cols-7 gap-1 text-center bg-slate-50/50 p-2 rounded-xl border border-slate-100 select-none">
-                            {hourlyStatus.map((item, idx) => {
-                              const isP = item?.status === "P";
-                              const isOD = item?.status === "OD";
-                              return (
-                                <div key={idx} className="flex flex-col items-center">
-                                  <span className="text-[7.5px] font-black text-slate-405 mb-0.5 leading-none">H{idx + 1}</span>
-                                  {item ? (
-                                    <span className={`inline-block w-5 h-5 flex items-center justify-center rounded-md text-[9px] font-black leading-none ${
-                                      isP ? "bg-emerald-100 text-emerald-700" :
-                                      isOD ? "bg-blue-100 text-blue-700" :
-                                      "bg-rose-100 text-rose-700"
-                                    }`}>
-                                      {item.status}
-                                    </span>
-                                  ) : (
-                                    <span className="text-slate-300 font-bold">-</span>
-                                  )}
-                                </div>
-                              );
-                            })}
+                        );
+                      } else {
+                        // Date range mobile summary
+                        return (
+                          <div key={student.id} className="p-4 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h4 className="font-bold text-slate-800 text-sm">{student.name}</h4>
+                                <span className="font-mono text-[10px] font-bold text-slate-400">{student.id}</span>
+                              </div>
+                              <button onClick={() => setSelectedStudent(student)} className="px-3 py-1 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-655 hover:border-orange-400 text-xs font-bold rounded-lg border border-slate-200/80 transition-all cursor-pointer">
+                                Logs
+                              </button>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {activeDates.map(dateStr => {
+                                const summary = getDaySummary(student.id, dateStr);
+                                if (!summary) return null;
+                                const isFullP = summary.aCount === 0 && summary.odCount === 0;
+                                const isFullA = summary.aCount === summary.totalCount;
+                                const isOD = summary.odCount > 0 && summary.aCount === 0;
+                                return (
+                                  <div key={dateStr} className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[9px] font-bold">
+                                    <span className="text-slate-400">{dateStr.substring(0, 5)}:</span>
+                                    {isFullP ? <span className="text-emerald-600 font-black">P</span> :
+                                     isFullA ? <span className="text-rose-600 font-black">A</span> :
+                                     isOD ? <span className="text-blue-600 font-black">OD</span> :
+                                     <span className="text-amber-600 font-black">{summary.pCount}/{summary.totalCount}</span>}
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      );
+                        );
+                      }
                     })}
                   </div>
 
@@ -417,57 +513,116 @@ export default function AttendanceSheetView({
                         <th onClick={() => handleSort("name")} className="p-4 pl-6 cursor-pointer hover:text-slate-700 transition-colors">
                           <span className="inline-flex items-center">Name {renderSortIndicator("name")}</span>
                         </th>
-                        <th className="p-4 text-center">1st Hour</th>
-                        <th className="p-4 text-center">2nd Hour</th>
-                        <th className="p-4 text-center">3rd Hour</th>
-                        <th className="p-4 text-center">4th Hour</th>
-                        <th className="p-4 text-center">5th Hour</th>
-                        <th className="p-4 text-center">6th Hour</th>
-                        <th className="p-4 text-center">7th Hour</th>
+                        {filterType === "single" ? (
+                          <>
+                            <th className="p-4 text-center">1st Hour</th>
+                            <th className="p-4 text-center">2nd Hour</th>
+                            <th className="p-4 text-center">3rd Hour</th>
+                            <th className="p-4 text-center">4th Hour</th>
+                            <th className="p-4 text-center">5th Hour</th>
+                            <th className="p-4 text-center">6th Hour</th>
+                            <th className="p-4 text-center">7th Hour</th>
+                          </>
+                        ) : (
+                          activeDates.map(dateStr => (
+                            <th key={dateStr} className="p-4 text-center font-mono text-[10px] tracking-wider min-w-[70px]">
+                              {dateStr.substring(0, 5)}
+                            </th>
+                          ))
+                        )}
                         <th className="p-4 pr-6 text-right">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {filteredStudents.map((student) => {
-                        const dailyLogs = getAttendanceSummaryForDate(student.id, selectedDate) || [];
-                        const hourlyStatus = Array(7).fill(null);
-                        dailyLogs.forEach((item) => {
-                          if (item.hour >= 1 && item.hour <= 7) {
-                            hourlyStatus[item.hour - 1] = item;
-                          }
-                        });
-                        return (
-                          <tr key={student.id} className={`group hover:bg-slate-50/40 transition-colors ${selectedStudent?.id === student.id ? "bg-orange-50/20" : ""}`}>
-                            <td className="p-4 pl-6 font-bold text-slate-800 group-hover:text-orange-600 transition-colors">
-                              <div>
-                                <div className="truncate max-w-[200px]">{student.name}</div>
-                                <div className="text-[10px] font-mono font-semibold text-slate-400 mt-0.5">{student.id}</div>
-                              </div>
-                            </td>
-                            {hourlyStatus.map((item, idx) => {
-                              const isP = item?.status === "P";
-                              const isOD = item?.status === "OD";
-                              return (
-                                <td key={idx} className="p-4 text-center">
-                                  {item ? (
-                                    <span className={`inline-block px-2 py-1 rounded-lg text-xs font-bold ${
-                                      isP ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
-                                      isOD ? "bg-blue-50 text-blue-600 border border-blue-100" :
-                                      "bg-rose-50 text-rose-600 border border-rose-100"
-                                    }`}>
-                                      {item.status}
-                                    </span>
-                                  ) : "-"}
-                                </td>
-                              );
-                            })}
-                            <td className="p-4 pr-6 text-right">
-                              <button onClick={() => setSelectedStudent(student)} className="px-3 py-1.5 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-650 hover:shadow-sm text-xs font-bold rounded-lg transition-all border border-slate-200/80 hover:border-orange-400 cursor-pointer">
-                                Logs
-                              </button>
-                            </td>
-                          </tr>
-                        );
+                        if (filterType === "single") {
+                          const dailyLogs = getAttendanceSummaryForDate(student.id, selectedDate) || [];
+                          const hourlyStatus = Array(7).fill(null);
+                          dailyLogs.forEach((item) => {
+                            if (item.hour >= 1 && item.hour <= 7) {
+                              hourlyStatus[item.hour - 1] = item;
+                            }
+                          });
+                          return (
+                            <tr key={student.id} className={`group hover:bg-slate-50/40 transition-colors ${selectedStudent?.id === student.id ? "bg-orange-50/20" : ""}`}>
+                              <td className="p-4 pl-6 font-bold text-slate-800 group-hover:text-orange-600 transition-colors">
+                                <div>
+                                  <div className="truncate max-w-[200px]">{student.name}</div>
+                                  <div className="text-[10px] font-mono font-semibold text-slate-400 mt-0.5">{student.id}</div>
+                                </div>
+                              </td>
+                              {hourlyStatus.map((item, idx) => {
+                                const isP = item?.status === "P";
+                                const isOD = item?.status === "OD";
+                                return (
+                                  <td key={idx} className="p-4 text-center">
+                                    {item ? (
+                                      <span className={`inline-block px-2 py-1 rounded-lg text-xs font-bold ${
+                                        isP ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
+                                        isOD ? "bg-blue-50 text-blue-600 border border-blue-100" :
+                                        "bg-rose-50 text-rose-600 border border-rose-100"
+                                      }`}>
+                                        {item.status}
+                                      </span>
+                                    ) : "-"}
+                                  </td>
+                                );
+                              })}
+                              <td className="p-4 pr-6 text-right">
+                                <button onClick={() => setSelectedStudent(student)} className="px-3 py-1.5 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-650 hover:shadow-sm text-xs font-bold rounded-lg transition-all border border-slate-200/80 hover:border-orange-400 cursor-pointer">
+                                  Logs
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        } else {
+                          // Date range grid row
+                          return (
+                            <tr key={student.id} className={`group hover:bg-slate-50/40 transition-colors ${selectedStudent?.id === student.id ? "bg-orange-50/20" : ""}`}>
+                              <td className="p-4 pl-6 font-bold text-slate-800 group-hover:text-orange-600 transition-colors">
+                                <div>
+                                  <div className="truncate max-w-[200px]">{student.name}</div>
+                                  <div className="text-[10px] font-mono font-semibold text-slate-400 mt-0.5">{student.id}</div>
+                                </div>
+                              </td>
+                              {activeDates.map(dateStr => {
+                                const summary = getDaySummary(student.id, dateStr);
+                                if (!summary) return <td key={dateStr} className="p-4 text-center text-slate-350">-</td>;
+                                
+                                const isFullP = summary.aCount === 0 && summary.odCount === 0;
+                                const isFullA = summary.aCount === summary.totalCount;
+                                const isOD = summary.odCount > 0 && summary.aCount === 0;
+                                
+                                return (
+                                  <td key={dateStr} className="p-4 text-center">
+                                    {isFullP ? (
+                                      <span className="inline-block px-2.5 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-lg text-xs font-bold" title="Present for all classes">
+                                        P
+                                      </span>
+                                    ) : isFullA ? (
+                                      <span className="inline-block px-2.5 py-1 bg-rose-50 text-rose-600 border border-rose-100 rounded-lg text-xs font-bold" title="Absent for all classes">
+                                        A
+                                      </span>
+                                    ) : isOD ? (
+                                      <span className="inline-block px-2.5 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-xs font-bold" title="On Duty">
+                                        OD
+                                      </span>
+                                    ) : (
+                                      <span className="inline-block px-2.5 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-lg text-xs font-bold" title={`${summary.pCount} of ${summary.totalCount} classes present`}>
+                                        {summary.pCount}/{summary.totalCount}
+                                      </span>
+                                    )}
+                                  </td>
+                                );
+                              })}
+                              <td className="p-4 pr-6 text-right">
+                                <button onClick={() => setSelectedStudent(student)} className="px-3 py-1.5 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-650 hover:shadow-sm text-xs font-bold rounded-lg transition-all border border-slate-200/80 hover:border-orange-400 cursor-pointer">
+                                  Logs
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        }
                       })}
                     </tbody>
                   </table>
