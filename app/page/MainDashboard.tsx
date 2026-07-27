@@ -1297,7 +1297,7 @@ export default function AdminDashboard() {
     });
   };
 
-  const handleDownloadExcel = async () => {
+  const handleDownloadExcel = async (options?: { isRange?: boolean; fromDate?: string; toDate?: string }) => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Attendance");
 
@@ -1340,6 +1340,14 @@ export default function AdminDashboard() {
         row.getCell("od").alignment = { horizontal: "center" };
         row.getCell("absent").alignment = { horizontal: "center" };
       });
+
+      worksheet.spliceRows(1, 0, 
+        ["Department", selectedDept?.name || "-"],
+        ["Class", selectedClass || "-"],
+        ["Semester", selectedSemester || "-"],
+        ["Date", options?.isRange ? `${options.fromDate} to ${options.toDate}` : selectedDate],
+        []
+      );
 
       const fileName = `Attendance_Overview_${selectedClass}_SEM_${selectedSemester}.xlsx`;
       await downloadWorkbook(workbook, fileName);
@@ -1423,7 +1431,15 @@ export default function AdminDashboard() {
         });
       });
 
-      const fileName = `Attendance_Daily_${selectedClass}_${selectedDate}.xlsx`;
+      worksheet.spliceRows(1, 0, 
+        ["Department", selectedDept?.name || "-"],
+        ["Class", selectedClass || "-"],
+        ["Semester", selectedSemester || "-"],
+        ["Date", options?.isRange ? `${options.fromDate} to ${options.toDate}` : selectedDate],
+        []
+      );
+
+      const fileName = `Attendance_Daily_${selectedClass}_${options?.isRange ? 'Range' : selectedDate}.xlsx`;
       await downloadWorkbook(workbook, fileName);
     }
   };
@@ -2140,6 +2156,12 @@ export default function AdminDashboard() {
                 setCurrentView("students");
                 setStudentSubView("list");
                 setSelectedDept(null);
+              }}
+              onViewFaculty={() => {
+                setCurrentView("faculty");
+                setFilterDept(selectedDept);
+                setSearchTerm("");
+                setFromDeptFaculty(true);
               }}
             />
           )}

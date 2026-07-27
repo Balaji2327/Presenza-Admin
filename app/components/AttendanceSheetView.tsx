@@ -15,7 +15,7 @@ interface AttendanceSheetViewProps {
     attendanceWarningCount: number;
   };
   loadingAttendance: boolean;
-  handleDownloadExcel: () => Promise<void>;
+  handleDownloadExcel: (options?: { isRange?: boolean; fromDate?: string; toDate?: string }) => Promise<void>;
   filteredStudents: Student[];
   students: Student[];
   studentAttendance: Record<string, any>;
@@ -65,22 +65,12 @@ export default function AttendanceSheetView({
   onViewTimetable,
   onEditClass,
 }: AttendanceSheetViewProps) {
-  const [filterType] = useState<"single" | "range">("range");
-  const [fromDate, setFromDate] = useState<string>(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 7);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  });
-  const [toDate, setToDate] = useState<string>(() => {
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  });
+  const [showRange, setShowRange] = useState(false);
+
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
+  const [appliedDates, setAppliedDates] = useState<{from: string, to: string} | null>(null);
+  const filterType = (showRange && appliedDates !== null) ? "range" : "single";
 
   const getDatesInRange = (startStr: string, endStr: string) => {
     const dates: string[] = [];
@@ -96,7 +86,7 @@ export default function AttendanceSheetView({
     return dates;
   };
 
-  const activeDates = getDatesInRange(fromDate, toDate);
+  const activeDates = appliedDates ? getDatesInRange(appliedDates.from, appliedDates.to) : [];
 
   const getDaySummary = (studentId: string, dateStr: string) => {
     const record = studentAttendance[studentId];
@@ -126,7 +116,7 @@ export default function AttendanceSheetView({
     <div className="space-y-6 animate-fade-in">
       {/* Info cards */}
       {selectedClass && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 sm:gap-3 lg:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5 sm:gap-3 lg:gap-4">
           {/* Card 1: Total Students */}
           <div className="bg-white border border-slate-200/85 p-2 sm:p-3.5 lg:p-4 rounded-xl flex items-center justify-between shadow-xs">
             <div>
@@ -172,23 +162,6 @@ export default function AttendanceSheetView({
             </div>
           </div>
 
-          {/* Card 4: View Faculty */}
-          <div 
-            onClick={onViewFaculty}
-            className="bg-white border border-slate-200/85 p-2 sm:p-3.5 lg:p-4 rounded-xl flex items-center justify-between shadow-xs cursor-pointer hover:border-indigo-400 hover:shadow-sm transition-all group"
-          >
-            <div>
-              <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider group-hover:text-indigo-500 transition-colors">
-                Dept Faculty
-              </p>
-              <h3 className="text-[9px] sm:text-xs font-bold text-slate-600 mt-0.5 group-hover:text-indigo-600 transition-colors">
-                View All
-              </h3>
-            </div>
-            <div className="p-1 sm:p-2.5 bg-indigo-50 text-indigo-500 rounded-lg border border-indigo-100 group-hover:bg-indigo-500 group-hover:text-white transition-all shrink-0">
-              <Users className="h-3.5 w-3.5 sm:h-5 w-5" />
-            </div>
-          </div>
 
           {/* Card 5: Manage Timetable */}
           <div 
@@ -245,8 +218,14 @@ export default function AttendanceSheetView({
               </div>
               <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80 items-center">
                 <button
-                  onClick={() => setActiveTab("overview")}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  onClick={() => {
+                    setActiveTab("overview");
+                    setShowRange(false);
+                    setFromDate("");
+                    setToDate("");
+                    setAppliedDates(null);
+                  }}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
                     activeTab === "overview"
                       ? "bg-white text-orange-600 shadow-sm"
                       : "text-slate-500 hover:text-slate-800"
@@ -254,19 +233,70 @@ export default function AttendanceSheetView({
                 >
                   Semester Stats
                 </button>
-                <div className={`flex items-center rounded-lg transition-all ${
+                <button
+                  onClick={() => {
+                    setActiveTab("daily");
+                    setShowRange(false);
+                    setFromDate("");
+                    setToDate("");
+                    setAppliedDates(null);
+                  }}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                     activeTab === "daily"
-                      ? "bg-white text-orange-600 shadow-sm pl-4 pr-2 py-1.5"
-                      : "text-slate-500 hover:text-slate-800 px-4 py-1.5"
-                  }`}>
+                      ? "bg-white text-orange-600 shadow-sm"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  Daily Grid
+                </button>
+                <div className="w-px h-4 bg-slate-300 mx-1"></div>
+                <button
+                  onClick={() => {
+                    const nextShowRange = !showRange;
+                    setShowRange(nextShowRange);
+                    if (nextShowRange) {
+                      setActiveTab("daily");
+                    } else {
+                      setFromDate("");
+                      setToDate("");
+                      setAppliedDates(null);
+                    }
+                  }}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    showRange 
+                      ? "bg-white text-orange-600 shadow-sm"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  Date Range
+                </button>
+              </div>
+
+              {showRange && (
+                <div className="flex items-center gap-1 animate-in slide-in-from-left-2">
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] text-slate-700 font-bold outline-none cursor-pointer focus:border-slate-300 w-[110px]"
+                  />
+                  <span className="text-slate-400 font-bold text-[9px]">TO</span>
+                  <input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] text-slate-700 font-bold outline-none cursor-pointer focus:border-slate-300 w-[110px]"
+                  />
                   <button
-                    onClick={() => setActiveTab("daily")}
-                    className="text-xs font-bold outline-none cursor-pointer"
+                    onClick={() => setAppliedDates({ from: fromDate, to: toDate })}
+                    disabled={!fromDate || !toDate}
+                    className="ml-1 px-2.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-bold shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Daily Grid
+                    OK
                   </button>
                 </div>
-              </div>
+              )}
+
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-400 uppercase">Semester</span>
                 <select
@@ -282,7 +312,11 @@ export default function AttendanceSheetView({
             </div>
             <div className="flex items-center justify-between gap-3 w-full lg:w-auto shrink-0">
               <button
-                onClick={handleDownloadExcel}
+                onClick={() => handleDownloadExcel({ 
+                  isRange: activeTab === "daily" && showRange && appliedDates !== null, 
+                  fromDate: appliedDates?.from, 
+                  toDate: appliedDates?.to 
+                })}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/10 hover:shadow-lg transition-all border border-emerald-500 hover:border-emerald-600 cursor-pointer"
               >
                 <Download className="h-4 w-4" />
@@ -294,31 +328,7 @@ export default function AttendanceSheetView({
             </div>
           </div>
 
-          {/* Secondary filter bar for Daily Grid Date Range */}
-          {activeTab === "daily" && (
-            <div className="flex flex-wrap items-center gap-4 bg-slate-50/50 border-b border-slate-100 p-4 text-xs font-semibold select-none">
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">From</span>
-                  <input
-                    type="date"
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                    className="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 font-bold outline-none cursor-pointer focus:border-slate-300"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">To</span>
-                  <input
-                    type="date"
-                    value={toDate}
-                    onChange={(e) => setToDate(e.target.value)}
-                    className="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 font-bold outline-none cursor-pointer focus:border-slate-300"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+
 
           {loadingStudents ? (
             <div className="p-12 text-center text-slate-400 font-medium">

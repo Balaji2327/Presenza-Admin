@@ -24,18 +24,20 @@ interface DepartmentWiseProps {
   departmentId: string;
   departmentName: string;
   onBack: () => void;
+  onViewFaculty: () => void;
 }
 
 export default function DepartmentWise({
   departmentId,
   departmentName,
   onBack,
+  onViewFaculty,
 }: DepartmentWiseProps) {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [presentStudents, setPresentStudents] = useState<Student[]>([]);
   const [absentStudents, setAbsentStudents] = useState<Student[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<"present" | "absent" | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<"present" | "absent" | "total" | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -135,6 +137,8 @@ export default function DepartmentWise({
       ? presentStudents
       : selectedCategory === "absent"
       ? absentStudents
+      : selectedCategory === "total"
+      ? students
       : [];
 
   return (
@@ -170,9 +174,16 @@ export default function DepartmentWise({
       ) : (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
             {/* Total Students Card */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+            <button
+              onClick={() => setSelectedCategory(selectedCategory === "total" ? null : "total")}
+              className={`text-left bg-white border rounded-2xl p-5 shadow-sm flex items-center justify-between transition-all cursor-pointer ${
+                selectedCategory === "total"
+                  ? "border-blue-500 ring-2 ring-blue-500/10 shadow-blue-500/5 bg-blue-50/20"
+                  : "border-slate-200 hover:border-blue-200 hover:shadow-md"
+              }`}
+            >
               <div>
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Total Students</span>
                 <h3 className="text-3xl font-extrabold text-slate-800 mt-1">{students.length}</h3>
@@ -180,7 +191,7 @@ export default function DepartmentWise({
               <div className="h-12 w-12 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-600">
                 <Users className="h-6 w-6" />
               </div>
-            </div>
+            </button>
 
             {/* Present Card */}
             <button
@@ -217,6 +228,24 @@ export default function DepartmentWise({
                 <XCircle className="h-6 w-6" />
               </div>
             </button>
+
+            {/* View Faculty Card */}
+            <div 
+              onClick={onViewFaculty}
+              className="bg-white border border-slate-200 p-5 rounded-2xl flex items-center justify-between shadow-sm cursor-pointer hover:border-indigo-400 hover:shadow-md transition-all group"
+            >
+              <div>
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest group-hover:text-indigo-500 transition-colors">
+                  Dept Faculty
+                </span>
+                <h3 className="text-xl font-bold text-slate-600 mt-1 group-hover:text-indigo-600 transition-colors">
+                  View All
+                </h3>
+              </div>
+              <div className="h-12 w-12 bg-indigo-50 text-indigo-500 rounded-xl border border-indigo-100 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                <Users className="h-6 w-6" />
+              </div>
+            </div>
           </div>
 
           {/* Drilldown List */}
