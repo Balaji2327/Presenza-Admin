@@ -23,6 +23,7 @@ import {
   updateDoc,
   addDoc,
   writeBatch,
+  deleteField,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
@@ -836,6 +837,27 @@ export default function AdminDashboard() {
     } catch (err: any) {
       console.error("Error updating student:", err);
       showPopup("error", "Error", "Failed to update student: " + err.message);
+    } finally {
+      setSavingStudent(false);
+    }
+  };
+
+  const handleResetDeviceFaceId = async () => {
+    if (!editingStudent) return;
+    if (!window.confirm("Are you sure you want to reset device ID and face embeddings for this student?")) return;
+    try {
+      setSavingStudent(true);
+      const studentDocRef = doc(db, "colleges", "students", "all_students", editingStudent.id);
+      await updateDoc(studentDocRef, {
+        deviceId: deleteField(),
+        faceEmbeddings: deleteField(),
+      });
+      showPopup("success", "Success", "Device ID and Face Embeddings reset successfully!");
+      setEditingStudent(null);
+      fetchAllStudents();
+    } catch (err: any) {
+      console.error("Error resetting device/face ID:", err);
+      showPopup("error", "Error", "Failed to reset: " + err.message);
     } finally {
       setSavingStudent(false);
     }
@@ -2559,7 +2581,16 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="flex justify-between items-center gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={handleResetDeviceFaceId}
+                  disabled={savingStudent}
+                  className="px-4 py-2 border border-red-200 text-red-500 hover:bg-red-50 text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Reset Face & Device ID
+                </button>
+                <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setEditingStudent(null)}
@@ -2575,6 +2606,7 @@ export default function AdminDashboard() {
                 >
                   {savingStudent ? "Saving..." : "Save Changes"}
                 </button>
+                </div>
               </div>
             </form>
           </div>
