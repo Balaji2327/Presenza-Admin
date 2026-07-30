@@ -272,7 +272,7 @@ export default function AttendanceSheetView({
                 </button>
               </div>
 
-              {showRange && (
+              {showRange ? (
                 <div className="flex items-center gap-1 animate-in slide-in-from-left-2">
                   <input
                     type="date"
@@ -295,7 +295,25 @@ export default function AttendanceSheetView({
                     OK
                   </button>
                 </div>
-              )}
+              ) : activeTab === "daily" ? (
+                <div className="flex items-center gap-1 animate-in slide-in-from-left-2">
+                  <span className="text-xs font-bold text-slate-400 uppercase">Date</span>
+                  <input
+                    type="date"
+                    value={selectedDate && selectedDate.includes("-") ? `${selectedDate.split("-")[2]}-${selectedDate.split("-")[1]}-${selectedDate.split("-")[0]}` : ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!val) {
+                        setSelectedDate("");
+                        return;
+                      }
+                      const [yyyy, mm, dd] = val.split("-");
+                      setSelectedDate(`${dd}-${mm}-${yyyy}`);
+                    }}
+                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] text-slate-700 font-bold outline-none cursor-pointer focus:border-slate-300 w-[120px]"
+                  />
+                </div>
+              ) : null}
 
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-400 uppercase">Semester</span>
