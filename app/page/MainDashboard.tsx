@@ -104,6 +104,7 @@ export default function AdminDashboard() {
   const [facultyPassword, setFacultyPassword] = useState("");
   const [facultyClassesInput, setFacultyClassesInput] = useState(""); // Comma separated list of classes
   const [editingFacultyDeptId, setEditingFacultyDeptId] = useState("");
+  const [facultyRole, setFacultyRole] = useState<"faculty" | "hod">("faculty");
   const [addingFaculty, setAddingFaculty] = useState(false);
 
   // Editing state variables
@@ -945,6 +946,7 @@ export default function AdminDashboard() {
         department: editingFaculty.department,
         classes: editingFaculty.classes,
         password: editingFaculty.password || "faculty123",
+        role: editingFaculty.role || "faculty",
       });
       showPopup("success", "Success", "Faculty updated successfully!");
       setEditingFaculty(null);
@@ -1040,6 +1042,7 @@ export default function AdminDashboard() {
         department: targetDeptId,
         password: facultyPassword || "faculty123",
         classes: classesArr,
+        role: facultyRole,
         mentees: []
       };
 
@@ -1051,6 +1054,7 @@ export default function AdminDashboard() {
       setFacultyEmail("");
       setFacultyPassword("");
       setFacultyClassesInput("");
+      setFacultyRole("faculty");
       setEditingFacultyDeptId("");
       
       fetchFaculties();
@@ -2062,7 +2066,12 @@ export default function AdminDashboard() {
                           <h4 className="text-sm font-bold text-slate-800 truncate">{fac.name}</h4>
                           <p className="text-[11px] font-mono text-slate-500 mt-0.5">{fac.id}</p>
                         </div>
-                        <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold shrink-0">{fac.department}</span>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold">{fac.department}</span>
+                          <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold ${fac.role === "hod" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
+                            {(fac.role || "faculty").toUpperCase()}
+                          </span>
+                        </div>
                       </div>
                       <div className="space-y-1.5 text-xs text-slate-500">
                         <div className="flex items-center gap-2">
@@ -2108,6 +2117,7 @@ export default function AdminDashboard() {
                         <th className="p-4">Name</th>
                         <th className="p-4">Email</th>
                         <th className="p-4">Department</th>
+                        <th className="p-4">Role</th>
                         <th className="p-4">Assigned Classes</th>
                         <th className="p-4 pr-6 text-right">Actions</th>
                       </tr>
@@ -2115,11 +2125,11 @@ export default function AdminDashboard() {
                     <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-600">
                       {loadingFaculties ? (
                         <tr>
-                          <td colSpan={6} className="text-center py-8 text-slate-400 font-bold">Loading faculty profiles...</td>
+                          <td colSpan={7} className="text-center py-8 text-slate-400 font-bold">Loading faculty profiles...</td>
                         </tr>
                       ) : filteredAllFaculty.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="text-center py-8 text-slate-400 font-bold">No faculty members found.</td>
+                          <td colSpan={7} className="text-center py-8 text-slate-400 font-bold">No faculty members found.</td>
                         </tr>
                       ) : (
                         filteredAllFaculty.map((fac) => (
@@ -2128,6 +2138,11 @@ export default function AdminDashboard() {
                             <td className="p-4 text-slate-800 font-bold">{fac.name}</td>
                             <td className="p-4 text-slate-500 font-medium">{fac.email}</td>
                             <td className="p-4">{fac.department}</td>
+                            <td className="p-4">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${fac.role === "hod" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
+                                {(fac.role || "faculty").toUpperCase()}
+                              </span>
+                            </td>
                             <td className="p-4">
                               <div className="flex flex-wrap gap-1">
                                 {(fac.classes || []).map((cls: string) => (
@@ -2996,6 +3011,19 @@ export default function AdminDashboard() {
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Role *</label>
+                <select
+                  value={facultyRole}
+                  onChange={(e) => setFacultyRole(e.target.value as "faculty" | "hod")}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500"
+                  required
+                >
+                  <option value="faculty">Faculty</option>
+                  <option value="hod">HOD</option>
+                </select>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Department *</label>
@@ -3105,6 +3133,19 @@ export default function AdminDashboard() {
                   onChange={(e) => setEditingFaculty({ ...editingFaculty, password: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Role *</label>
+                <select
+                  value={editingFaculty.role || "faculty"}
+                  onChange={(e) => setEditingFaculty({ ...editingFaculty, role: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500"
+                  required
+                >
+                  <option value="faculty">Faculty</option>
+                  <option value="hod">HOD</option>
+                </select>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

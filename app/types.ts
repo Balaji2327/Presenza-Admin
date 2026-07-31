@@ -27,4 +27,5 @@ export interface Faculty {
   email: string;
   department: string;
   classes?: string[];
+  role?: "faculty" | "hod";
 }
