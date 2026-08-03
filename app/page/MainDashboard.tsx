@@ -7,6 +7,7 @@ import DepartmentWise from "./DepartmentWise";
 import Sidebar from "../components/Sidebar";
 import AttendanceSheetView from "../components/AttendanceSheetView";
 import TimetableEditorView from "../components/TimetableEditorView";
+import EventsView from "../components/EventsView";
 import ExcelJS from "exceljs";
 import { db, storage } from "../firebase";
 import {
@@ -80,7 +81,7 @@ interface AttendanceRecord {
 export default function AdminDashboard() {
   // Navigation states
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [currentView, setCurrentView] = useState<"students" | "faculty" | "news" | "department-wise">("students");
+  const [currentView, setCurrentView] = useState<"students" | "faculty" | "news" | "department-wise" | "events">("students");
   const [studentSubView, setStudentSubView] = useState<"list" | "attendance" | "timetable">("list");
   const [expandedDepts, setExpandedDepts] = useState<Set<string>>(new Set());
   const [fromDeptFaculty, setFromDeptFaculty] = useState<boolean>(false);
@@ -2182,6 +2183,16 @@ export default function AdminDashboard() {
           {/* News View */}
           {currentView === "news" && (
             <News showPopup={showPopup} showConfirm={showConfirm} />
+          )}
+
+          {/* Events View */}
+          {currentView === "events" && (
+            <EventsView
+              faculties={faculties}
+              students={allStudents}
+              showPopup={showPopup}
+              showConfirm={showConfirm}
+            />
           )}
 
           {/* Department Wise View */}

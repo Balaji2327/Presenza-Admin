@@ -10,6 +10,7 @@ import {
   Newspaper,
   LogOut,
   PanelLeftClose,
+  Calendar,
 } from "lucide-react";
 
 interface Department {
@@ -46,8 +47,8 @@ interface SidebarProps {
   setSelectedDept: (dept: Department | null) => void;
   selectedClass: string;
   setSelectedClass: (cls: string) => void;
-  currentView: "students" | "faculty" | "news" | "department-wise";
-  setCurrentView: (view: "students" | "faculty" | "news" | "department-wise") => void;
+  currentView: "students" | "faculty" | "news" | "department-wise" | "events";
+  setCurrentView: (view: "students" | "faculty" | "news" | "department-wise" | "events") => void;
   studentSubView: "list" | "attendance" | "timetable";
   setStudentSubView: (subView: "list" | "attendance" | "timetable") => void;
   setFromDeptFaculty: (val: boolean) => void;
@@ -130,6 +131,29 @@ export default function Sidebar({
 
       {/* Dept + Class Tree */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
+        {/* Events Section */}
+        <div className="px-2 pt-4 pb-2">
+          <button
+            onClick={() => {
+              setCurrentView("events");
+              setSelectedDept(null);
+              setFilterDept(null);
+              setFilterClass("");
+              setSidebarOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all duration-200 border ${
+              currentView === "events"
+                ? "bg-orange-500 border-orange-400 text-white shadow-md shadow-orange-500/10"
+                : "text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900"
+            }`}
+          >
+            <Calendar className="h-4 w-4" />
+            <span>Events</span>
+          </button>
+        </div>
+
+        <div className="my-1 border-t border-slate-100" />
+
         {/* Section Label */}
         <div className="px-4 pt-4 pb-1 flex items-center justify-between">
           <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
