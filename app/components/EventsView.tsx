@@ -211,7 +211,9 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredEvents.map(evt => {
-            const facultyName = faculties.find(f => f.id === evt.assignedFacultyId)?.name || evt.assignedFacultyId;
+            const facultyNames = (evt.assignedFacultyIds || [])
+              .map(id => faculties.find(f => f.id === id)?.name || id)
+              .join(", ");
             return (
               <div key={evt.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
                 <div className="absolute top-0 left-0 w-1 h-full bg-orange-400" />
