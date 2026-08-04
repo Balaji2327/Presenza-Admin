@@ -17,6 +17,7 @@ interface AppEvent {
   timeSlots?: { startTime: string; endTime: string }[];
   durationType?: 'hour' | 'hours' | 'full_day' | 'multiple_days';
   selectedPeriods?: number[];
+  eventType?: 'event' | 'token';
   createdAt?: any;
 }
 
@@ -45,6 +46,7 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
   const [assignedStudents, setAssignedStudents] = useState<string[]>([]);
   const [durationType, setDurationType] = useState<'hour' | 'hours' | 'full_day' | 'multiple_days'>('hour');
   const [selectedPeriods, setSelectedPeriods] = useState<number[]>([]);
+  const [eventType, setEventType] = useState<'event' | 'token'>('event');
   
   // Student Selection state
   const [studentSearch, setStudentSearch] = useState("");
@@ -87,6 +89,7 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
     setAssignedStudents([]);
     setDurationType('hour');
     setSelectedPeriods([1]);
+    setEventType('event');
     setIsModalOpen(true);
   };
 
@@ -101,6 +104,7 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
     setAssignedStudents(evt.assignedStudents || []);
     setDurationType(evt.durationType || 'hour');
     setSelectedPeriods(evt.selectedPeriods || (evt.timeSlots && evt.timeSlots.length > 0 ? [1] : []));
+    setEventType(evt.eventType || 'event');
     setIsModalOpen(true);
   };
 
@@ -131,6 +135,7 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
         timeSlots,
         durationType,
         selectedPeriods,
+        eventType,
         createdAt: editingEvent ? editingEvent.createdAt : Timestamp.now()
       };
 
@@ -259,6 +264,11 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
                       {evt.durationType.replace('_', ' ')}
                     </span>
                   )}
+                  {evt.eventType && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-600 border border-purple-200 text-[10px] font-bold rounded-md uppercase tracking-wider">
+                      {evt.eventType}
+                    </span>
+                  )}
                   {evt.selectedPeriods && evt.selectedPeriods.length > 0 ? (
                     evt.selectedPeriods.map((p, i) => (
                       <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-600 border border-orange-200 text-[10px] font-bold rounded-md">
@@ -302,6 +312,34 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
                     <div>
                       <label className="block text-xs font-bold text-slate-500 mb-1">Event Name *</label>
                       <input type="text" value={name} onChange={e => setName(e.target.value)} required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500" placeholder="e.g. Incubation Training" />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-2">Event Type *</label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEventType('event')}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                            eventType === 'event'
+                              ? 'bg-orange-500 text-white shadow-sm'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          Event
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEventType('token')}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                            eventType === 'token'
+                              ? 'bg-orange-500 text-white shadow-sm'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          Token
+                        </button>
+                      </div>
                     </div>
                     
                     <div>
