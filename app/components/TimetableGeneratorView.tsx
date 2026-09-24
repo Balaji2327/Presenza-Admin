@@ -830,56 +830,79 @@ export default function TimetableGeneratorView({
       // 2. Hybrid Gemini AI Model Call with Fallback
       const callGeminiWithFallback = async (prompt: string): Promise<string> => {
         const cleanKey = apiKey.trim();
-        if (!cleanKey) {
+        const isValidGeminiKey = cleanKey.length >= 20;
+
+        if (!isValidGeminiKey) {
           setPipelineStage("Running instant Presenza high-speed CSP engine...");
           return JSON.stringify(generateLocalOptimizedTimetable());
         }
 
         const uniqueModels = [
-          "gemini-2.5-flash",
-          "gemini-2.0-flash",
-          "gemini-1.5-flash",
+          "gemini-3.6-flash",
+          "gemini-3.7-flash",
+          "gemini-3.6-pro",
+          "gemini-3.5-flash",
+          "gemini-1.5-pro",
         ];
 
         for (const modelName of uniqueModels) {
-          try {
-            setPipelineStage(`Stage 1/2: Synthesizing with Gemini AI (${modelName})...`);
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${cleanKey}`;
-            const resp = await fetch(url, {
-              method: "POST",
-              signal: controller.signal,
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                  temperature: 0.1,
-                  maxOutputTokens: 8192,
-                  responseMimeType: "application/json",
-                },
-              }),
-            });
-            clearTimeout(timeoutId);
-
-            if (resp.status === 401 || resp.status === 403) {
-              console.warn(
-                `Gemini API authorization error (${resp.status}): Project access denied or invalid key. Switching directly to Presenza CSP engine.`
-              );
-              break; // Abort remaining models immediately to prevent repeated 403 console errors
-            }
-
-            if (resp.ok) {
-              const data = await resp.json();
-              const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-              if (text && (text.includes("[") || text.includes("{"))) {
-                setPipelineStage(`Stage 1/2: Timetable generated with Gemini AI! Checking constraints...`);
-                return text;
+          for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+              if (attempt > 0) {
+                setPipelineStage(`Retrying Gemini AI (${modelName})...`);
+                await new Promise((r) => setTimeout(r, 1200));
+              } else {
+                setPipelineStage(`Stage 1/2: Synthesizing with Gemini AI (${modelName})...`);
               }
+
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 18000);
+
+              const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${cleanKey}`;
+              const resp = await fetch(url, {
+                method: "POST",
+                signal: controller.signal,
+                headers: {
+                  "Content-Type": "application/json",
+                  "x-goog-api-key": cleanKey,
+                },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: prompt }] }],
+                  generationConfig: {
+                    temperature: 0.1,
+                    maxOutputTokens: 8192,
+                    responseMimeType: "application/json",
+                  },
+                }),
+              });
+              clearTimeout(timeoutId);
+
+              if (resp.status === 401 || resp.status === 403) {
+                console.warn(
+                  `Gemini API authorization error (${resp.status}): Project access denied or invalid key. Switching directly to Presenza CSP engine.`
+                );
+                break; // Abort remaining models immediately to prevent repeated 403 console errors
+              }
+
+              if (resp.ok) {
+                const data = await resp.json();
+                const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+                if (text && (text.includes("[") || text.includes("{"))) {
+                  setPipelineStage(`Stage 1/2: Timetable generated with Gemini AI! Checking constraints...`);
+                  return text;
+                }
+              } else {
+                const errBody = await resp.text().catch(() => "");
+                console.warn(`Model ${modelName} returned status ${resp.status}:`, errBody);
+                // Only retry on 503 (high demand)
+                if (resp.status !== 503) {
+                  break;
+                }
+              }
+            } catch (err: any) {
+              console.warn(`Model ${modelName} call skipped:`, err?.message || err);
+              break;
             }
-          } catch (err: any) {
-            console.warn(`Model ${modelName} call skipped:`, err?.message || err);
           }
         }
 
