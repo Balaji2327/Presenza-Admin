@@ -25,6 +25,7 @@ interface DepartmentWiseProps {
   departmentName: string;
   onBack: () => void;
   onViewFaculty: () => void;
+  onViewTimetable: () => void;
 }
 
 export default function DepartmentWise({
@@ -32,6 +33,7 @@ export default function DepartmentWise({
   departmentName,
   onBack,
   onViewFaculty,
+  onViewTimetable,
 }: DepartmentWiseProps) {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -174,7 +176,7 @@ export default function DepartmentWise({
       ) : (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-5">
             {/* Total Students Card */}
             <button
               onClick={() => setSelectedCategory(selectedCategory === "total" ? null : "total")}
@@ -188,7 +190,7 @@ export default function DepartmentWise({
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Total Students</span>
                 <h3 className="text-3xl font-extrabold text-slate-800 mt-1">{students.length}</h3>
               </div>
-              <div className="h-12 w-12 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-600">
+              <div className="h-12 w-12 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-600 shrink-0">
                 <Users className="h-6 w-6" />
               </div>
             </button>
@@ -206,7 +208,7 @@ export default function DepartmentWise({
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Present Today</span>
                 <h3 className="text-3xl font-extrabold text-emerald-600 mt-1">{presentStudents.length}</h3>
               </div>
-              <div className="h-12 w-12 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
+              <div className="h-12 w-12 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 shrink-0">
                 <CheckCircle className="h-6 w-6" />
               </div>
             </button>
@@ -224,7 +226,7 @@ export default function DepartmentWise({
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest font-extrabold">Absent Today</span>
                 <h3 className="text-3xl font-extrabold text-rose-600 mt-1">{absentStudents.length}</h3>
               </div>
-              <div className="h-12 w-12 bg-rose-50 border border-rose-100 rounded-xl flex items-center justify-center text-rose-600">
+              <div className="h-12 w-12 bg-rose-50 border border-rose-100 rounded-xl flex items-center justify-center text-rose-600 shrink-0">
                 <XCircle className="h-6 w-6" />
               </div>
             </button>
@@ -242,8 +244,44 @@ export default function DepartmentWise({
                   View All
                 </h3>
               </div>
-              <div className="h-12 w-12 bg-indigo-50 text-indigo-500 rounded-xl border border-indigo-100 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-all">
+              <div className="h-12 w-12 bg-indigo-50 text-indigo-500 rounded-xl border border-indigo-100 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-all shrink-0">
                 <Users className="h-6 w-6" />
+              </div>
+            </div>
+
+            {/* Time Table Card (SchedulAI Engine) */}
+            <div 
+              onClick={onViewTimetable}
+              className="bg-white border border-slate-200 p-5 rounded-2xl flex items-center justify-between shadow-sm cursor-pointer hover:border-orange-400 hover:shadow-md transition-all group relative overflow-hidden"
+            >
+              <div className="z-10">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest group-hover:text-orange-500 transition-colors">
+                  Time Table
+                </span>
+                <h3 className="text-xl font-extrabold text-slate-800 mt-1 group-hover:text-orange-600 transition-colors flex items-center gap-1.5">
+                  Generate
+                </h3>
+              </div>
+              <div className="h-12 w-12 bg-orange-50 text-orange-500 rounded-xl border border-orange-100 flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-all shrink-0 z-10">
+                <Users className="hidden" /> {/* placeholder to maintain alignment */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-6 w-6"
+                >
+                  <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+                  <line x1="16" x2="16" y1="2" y2="6" />
+                  <line x1="8" x2="8" y1="2" y2="6" />
+                  <line x1="3" x2="21" y1="10" y2="10" />
+                  <path d="m9 16 2 2 4-4" />
+                </svg>
               </div>
             </div>
           </div>

@@ -8,6 +8,7 @@ import Sidebar from "../components/Sidebar";
 import AttendanceSheetView from "../components/AttendanceSheetView";
 import TimetableEditorView from "../components/TimetableEditorView";
 import EventsView from "../components/EventsView";
+import TimetableGeneratorView from "../components/TimetableGeneratorView";
 import ExcelJS from "exceljs";
 import { db, storage } from "../firebase";
 import {
@@ -81,7 +82,7 @@ interface AttendanceRecord {
 export default function AdminDashboard() {
   // Navigation states
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [currentView, setCurrentView] = useState<"students" | "faculty" | "news" | "department-wise" | "events">("students");
+  const [currentView, setCurrentView] = useState<"students" | "faculty" | "news" | "department-wise" | "events" | "timetable">("students");
   const [studentSubView, setStudentSubView] = useState<"list" | "attendance" | "timetable">("list");
   const [expandedDepts, setExpandedDepts] = useState<Set<string>>(new Set());
   const [fromDeptFaculty, setFromDeptFaculty] = useState<boolean>(false);
@@ -2210,6 +2211,26 @@ export default function AdminDashboard() {
                 setFilterDept(selectedDept);
                 setSearchTerm("");
                 setFromDeptFaculty(true);
+              }}
+              onViewTimetable={() => {
+                setCurrentView("timetable");
+              }}
+            />
+          )}
+
+          {/* Timetable Generator View (SchedulAI Engine) */}
+          {currentView === "timetable" && (
+            <TimetableGeneratorView
+              selectedDept={selectedDept}
+              departments={departments}
+              faculties={faculties}
+              onBack={() => {
+                if (selectedDept) {
+                  setCurrentView("department-wise");
+                } else {
+                  setCurrentView("students");
+                  setStudentSubView("list");
+                }
               }}
             />
           )}

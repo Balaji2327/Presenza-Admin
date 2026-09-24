@@ -47,8 +47,8 @@ interface SidebarProps {
   setSelectedDept: (dept: Department | null) => void;
   selectedClass: string;
   setSelectedClass: (cls: string) => void;
-  currentView: "students" | "faculty" | "news" | "department-wise" | "events";
-  setCurrentView: (view: "students" | "faculty" | "news" | "department-wise" | "events") => void;
+  currentView: "students" | "faculty" | "news" | "department-wise" | "events" | "timetable";
+  setCurrentView: (view: "students" | "faculty" | "news" | "department-wise" | "events" | "timetable") => void;
   studentSubView: "list" | "attendance" | "timetable";
   setStudentSubView: (subView: "list" | "attendance" | "timetable") => void;
   setFromDeptFaculty: (val: boolean) => void;
@@ -374,6 +374,24 @@ export default function Sidebar({
           >
             <Newspaper className="h-4 w-4" />
             <span>News</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setCurrentView("timetable");
+              setFromDeptFaculty(false);
+              setFilterDept(null);
+              setFilterClass("");
+              setSidebarOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all duration-200 border ${
+              currentView === "timetable"
+                ? "bg-orange-500 border-orange-400 text-white shadow-md shadow-orange-500/10"
+                : "text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900"
+            }`}
+          >
+            <Calendar className="h-4 w-4" />
+            <span>Time Table</span>
           </button>
         </div>
 
