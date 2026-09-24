@@ -86,12 +86,15 @@ export interface ConflictItem {
 }
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+import { db } from "../firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 interface TimetableGeneratorViewProps {
   selectedDept?: Department | null;
   departments: Department[];
   faculties: Faculty[];
   onBack: () => void;
+  onTimetablesUpdated?: () => void;
 }
 
 export default function TimetableGeneratorView({
@@ -99,6 +102,7 @@ export default function TimetableGeneratorView({
   departments,
   faculties,
   onBack,
+  onTimetablesUpdated,
 }: TimetableGeneratorViewProps) {
   // Config & API - loaded automatically from process.env.NEXT_PUBLIC_GEMINI_API_KEY (.env.local)
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
@@ -1114,6 +1118,148 @@ Return strictly a JSON array of slots:
     doc.save(`Presenza-Timetable-${classNameStr.replace(/\s+/g, "-")}.pdf`);
   };
 
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState(false);
+
+  // Publish / Apply generated timetable to all respective classes in Firestore
+  const handlePublishToAllClasses = async () => {
+    if (!finalTimetable || finalTimetable.length === 0) {
+      alert("No generated timetable found. Please generate a timetable first.");
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      let count = 0;
+      const classNamesUpdated: string[] = [];
+
+      for (const cls of validClasses) {
+        // Find which department this class belongs to
+        let targetDept = departments.find((d) => d.classes?.includes(cls.name));
+        if (!targetDept && selectedDept) targetDept = selectedDept;
+        if (!targetDept && departments.length > 0) targetDept = departments[0];
+
+        if (!targetDept) continue;
+
+        // Build 5-day grid
+        const grid: Record<string, string[]> = {
+          Monday: Array(periodsPerDay).fill(""),
+          Tuesday: Array(periodsPerDay).fill(""),
+          Wednesday: Array(periodsPerDay).fill(""),
+          Thursday: Array(periodsPerDay).fill(""),
+          Friday: Array(periodsPerDay).fill(""),
+        };
+
+        const classSlots = finalTimetable.filter(
+          (t) =>
+            t.classId === cls.id ||
+            String(t.className || "").toLowerCase() === cls.name.toLowerCase()
+        );
+
+        classSlots.forEach((slot) => {
+          if (
+            slot.day &&
+            grid[slot.day] &&
+            slot.period >= 1 &&
+            slot.period <= periodsPerDay
+          ) {
+            grid[slot.day][slot.period - 1] = slot.subject || "";
+          }
+        });
+
+        // Collect course mappings for this class
+        const classSubs = subjects.filter(
+          (s) => s.classId === cls.id && s.name.trim()
+        );
+        const mappedCourses: any[] = [];
+        const seenSubs = new Set<string>();
+
+        classSubs.forEach((s) => {
+          if (seenSubs.has(s.name.trim())) return;
+          seenSubs.add(s.name.trim());
+          const pFac = validFaculty.find((f) => f.id === s.facultyId);
+          const sFac = validFaculty.find((f) => f.id === s.secondaryFacultyId);
+          mappedCourses.push({
+            abbreviation: s.name.trim(),
+            name: s.name.trim(),
+            facultyId: pFac?.id || "",
+            facultyName: pFac?.name || "",
+            isElective: s.type === "ELECTIVE",
+            name2: sFac ? s.name.trim() : "",
+            facultyId2: sFac?.id || "",
+            facultyName2: sFac?.name || "",
+          });
+        });
+
+        // Also add any subject found in slots that wasn't in classSubs
+        classSlots.forEach((slot) => {
+          if (slot.subject && !seenSubs.has(slot.subject.trim())) {
+            seenSubs.add(slot.subject.trim());
+            const fac = validFaculty.find((f) => f.name === slot.faculty);
+            const secFac = validFaculty.find((f) => f.name === slot.secondaryFaculty);
+            mappedCourses.push({
+              abbreviation: slot.subject.trim(),
+              name: slot.subject.trim(),
+              facultyId: fac?.id || "",
+              facultyName: slot.faculty || "",
+              isElective: slot.type === "ELECTIVE",
+              name2: slot.secondaryFaculty ? slot.subject.trim() : "",
+              facultyId2: secFac?.id || "",
+              facultyName2: slot.secondaryFaculty || "",
+            });
+          }
+        });
+
+        const classDocRef = doc(
+          db,
+          "colleges",
+          "departments",
+          "all_departments",
+          targetDept.id,
+          "clasees",
+          cls.name
+        );
+
+        const classDocSnap = await getDoc(classDocRef);
+        const existingData = classDocSnap.exists() ? classDocSnap.data() : {};
+        const currentSem = existingData.currentSemester || "I";
+        const existingTimetables = existingData.timetables || {};
+        const existingMappings = existingData.courseMapping || {};
+
+        existingTimetables[currentSem] = grid;
+        existingMappings[currentSem] = mappedCourses;
+
+        await setDoc(
+          classDocRef,
+          {
+            timetables: existingTimetables,
+            courseMapping: existingMappings,
+          },
+          { merge: true }
+        );
+
+        count++;
+        classNamesUpdated.push(cls.name);
+      }
+
+      setPublishSuccess(true);
+      setTimeout(() => setPublishSuccess(false), 5000);
+      if (onTimetablesUpdated) {
+        onTimetablesUpdated();
+      }
+      alert(
+        ` Successfully applied generated timetable to all ${count} respective classes (${classNamesUpdated.join(
+          ", "
+        )})!\n\nAll class timetables have been updated.`
+      );
+    } catch (err: any) {
+      console.error("Error saving timetables to classes:", err);
+      alert("Error saving timetable to classes: " + (err.message || String(err)));
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   const validClasses = classes.filter((c) => c.name.trim() !== "");
   const validFaculty = facultyList.filter((f) => f.name.trim() !== "");
   const validRooms = rooms.filter((r) => r.name.trim() !== "");
@@ -1172,6 +1318,34 @@ Return strictly a JSON array of slots:
               View Timetable
             </button>
           </div>
+
+          {finalTimetable && (
+            <button
+              onClick={handlePublishToAllClasses}
+              disabled={isPublishing}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-extrabold text-xs shadow-md transition-all cursor-pointer ${
+                publishSuccess
+                  ? "bg-emerald-600 text-white shadow-emerald-600/20"
+                  : "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 active:scale-95"
+              }`}
+              title="Publish this generated schedule to all respective class timetables in Presenza"
+            >
+              {isPublishing ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : publishSuccess ? (
+                <CheckCircle2 className="h-4 w-4 text-emerald-200" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              <span>
+                {isPublishing
+                  ? "Publishing to Classes..."
+                  : publishSuccess
+                  ? "Published to All Classes!"
+                  : "Apply to All Class Timetables"}
+              </span>
+            </button>
+          )}
 
           <button
             onClick={runAIEnginePipeline}
@@ -1845,9 +2019,22 @@ Return strictly a JSON array of slots:
                   </select>
                   <button
                     onClick={() => exportPDF(selectedClassView)}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-500/20 transition-all cursor-pointer"
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-500/20 transition-all cursor-pointer"
                   >
                     <Download className="h-4 w-4" /> Export PDF
+                  </button>
+                  <button
+                    onClick={handlePublishToAllClasses}
+                    disabled={isPublishing}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                    title="Publish this timetable to all respective classes"
+                  >
+                    {isPublishing ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4" />
+                    )}
+                    <span>{isPublishing ? "Applying..." : "Apply to All Classes"}</span>
                   </button>
                 </div>
               ) : (

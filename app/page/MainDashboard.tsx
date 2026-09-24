@@ -305,6 +305,63 @@ export default function AdminDashboard() {
     fetchClassMetadata();
   }, [selectedClass, selectedDept?.id]);
 
+  // Fetch Class Timetable & Course Mappings from Firestore when class or semester changes
+  const fetchCurrentClassTimetable = async () => {
+    if (!selectedClass || !selectedDept) {
+      setTimetableGrid({
+        Monday: Array(7).fill(""),
+        Tuesday: Array(7).fill(""),
+        Wednesday: Array(7).fill(""),
+        Thursday: Array(7).fill(""),
+        Friday: Array(7).fill("")
+      });
+      setCourseMappings([]);
+      return;
+    }
+
+    try {
+      const classDocRef = doc(
+        db,
+        "colleges",
+        "departments",
+        "all_departments",
+        selectedDept.id,
+        "clasees",
+        selectedClass
+      );
+      const docSnap = await getDoc(classDocRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const targetSem = selectedSemester || data.currentSemester || "I";
+        const savedTimetable = data.timetables?.[targetSem] || {
+          Monday: Array(7).fill(""),
+          Tuesday: Array(7).fill(""),
+          Wednesday: Array(7).fill(""),
+          Thursday: Array(7).fill(""),
+          Friday: Array(7).fill("")
+        };
+        const savedMappings = data.courseMapping?.[targetSem] || [];
+        setTimetableGrid(savedTimetable);
+        setCourseMappings(savedMappings);
+      } else {
+        setTimetableGrid({
+          Monday: Array(7).fill(""),
+          Tuesday: Array(7).fill(""),
+          Wednesday: Array(7).fill(""),
+          Thursday: Array(7).fill(""),
+          Friday: Array(7).fill("")
+        });
+        setCourseMappings([]);
+      }
+    } catch (err) {
+      console.error("Error loading class timetable:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCurrentClassTimetable();
+  }, [selectedClass, selectedDept?.id, selectedSemester]);
+
   // Fetch Students and their attendance when selectedClass or selectedSemester changes
   useEffect(() => {
     if (!selectedClass) {
@@ -2224,6 +2281,7 @@ export default function AdminDashboard() {
               selectedDept={selectedDept}
               departments={departments}
               faculties={faculties}
+              onTimetablesUpdated={fetchCurrentClassTimetable}
               onBack={() => {
                 if (selectedDept) {
                   setCurrentView("department-wise");
