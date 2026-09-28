@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Sparkles,
   Plus,
@@ -152,8 +153,10 @@ export default function TimetableGeneratorView({
   const [isRestructureMode, setIsRestructureMode] = useState(false);
   const [customApiKey, setCustomApiKey] = useState("");
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     try {
       const savedKey = localStorage.getItem("presenza_gemini_api_key");
       if (savedKey) setCustomApiKey(savedKey);
@@ -2516,10 +2519,10 @@ Return strictly a JSON array of slots:
         </div>
       )}
 
-      {/* ── AI Prompt & Restructuring Modal ────────────────────────────── */}
-      {showAIPromptModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm overflow-y-auto flex items-center justify-center p-4 sm:p-6 animate-fade-in">
-          <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl md:max-w-3xl my-auto overflow-hidden flex flex-col max-h-[90vh]">
+      {/* ── AI Prompt & Restructuring Modal (Portaled to document.body) ── */}
+      {showAIPromptModal && mounted && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl w-full max-w-2xl md:max-w-3xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="p-5 sm:p-6 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
@@ -2780,7 +2783,8 @@ Return strictly a JSON array of slots:
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
