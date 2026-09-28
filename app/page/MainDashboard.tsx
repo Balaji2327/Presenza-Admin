@@ -1693,7 +1693,7 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-800 font-sans">
+    <div className="flex h-screen w-full bg-slate-50 text-slate-800 font-sans overflow-hidden">
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
@@ -1735,7 +1735,7 @@ export default function AdminDashboard() {
       />
 
       {/* MAIN VIEWPORT */}
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         {/* Top Header - Hidden in Timetable view since TimetableGeneratorView has its own dedicated navigation header */}
         {currentView !== "timetable" && (
           <header className="h-14 lg:h-20 border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 bg-white shadow-sm z-10 shrink-0">
