@@ -1736,34 +1736,36 @@ export default function AdminDashboard() {
 
       {/* MAIN VIEWPORT */}
       <main className="flex-1 flex flex-col min-w-0">
-        {/* Top Header */}
-        <header className="h-14 lg:h-20 border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 bg-white shadow-sm z-10 shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            {/* Hamburger Menu for Mobile */}
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 hover:bg-slate-100 rounded-xl text-slate-600 hover:text-slate-900 transition-colors cursor-pointer shrink-0"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            <h2 className="text-sm lg:text-lg font-extrabold text-slate-800 truncate">
-              {currentView === "students" && (
-                studentSubView === "list" ? "Student Profiles" :
-                studentSubView === "attendance" ? `Attendance — ${selectedClass || ""}` :
-                `Timetable — ${selectedClass || ""}`
-              )}
-              {currentView === "faculty" && "Faculty Management"}
-              {currentView === "news" && "News Management"}
-              {currentView === "department-wise" && "Department Overview"}
-            </h2>
-          </div>
+        {/* Top Header - Hidden in Timetable view since TimetableGeneratorView has its own dedicated navigation header */}
+        {currentView !== "timetable" && (
+          <header className="h-14 lg:h-20 border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 bg-white shadow-sm z-10 shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              {/* Hamburger Menu for Mobile */}
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden p-2 hover:bg-slate-100 rounded-xl text-slate-600 hover:text-slate-900 transition-colors cursor-pointer shrink-0"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <h2 className="text-sm lg:text-lg font-extrabold text-slate-800 truncate">
+                {currentView === "students" && (
+                  studentSubView === "list" ? "Student Profiles" :
+                  studentSubView === "attendance" ? `Attendance — ${selectedClass || ""}` :
+                  `Timetable — ${selectedClass || ""}`
+                )}
+                {currentView === "faculty" && "Faculty Management"}
+                {currentView === "news" && "News Management"}
+                {currentView === "department-wise" && "Department Overview"}
+              </h2>
+            </div>
 
-          <div className="flex items-center gap-4">
-          </div>
-        </header>
+            <div className="flex items-center gap-4">
+            </div>
+          </header>
+        )}
 
         {/* Dashboard Content */}
-        <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-4 lg:space-y-6 select-none">
+        <div className={`flex-1 overflow-y-auto select-none ${currentView === "timetable" ? "p-2 sm:p-4 pt-2 sm:pt-3" : "p-4 lg:p-8 space-y-4 lg:space-y-6"}`}>
           {/* Students -> Sub-view list */}
           {currentView === "students" && studentSubView === "list" && (
             <div className="space-y-4 lg:space-y-6 animate-fade-in">

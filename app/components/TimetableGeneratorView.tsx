@@ -24,7 +24,13 @@ import {
   HelpCircle,
   FileSpreadsheet,
   Check,
-  ChevronDown
+  ChevronDown,
+  Wand2,
+  Lightbulb,
+  X,
+  MessageSquareText,
+  SlidersHorizontal,
+  Bot
 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -136,6 +142,34 @@ export default function TimetableGeneratorView({
   const [isProcessing, setIsProcessing] = useState(false);
   const [detectedConflicts, setDetectedConflicts] = useState<ConflictItem[]>([]);
   const [finalTimetable, setFinalTimetable] = useState<TimetableSlot[] | null>(null);
+
+  // AI Prompt Studio States
+  const [showAIPromptModal, setShowAIPromptModal] = useState(false);
+  const [userPromptText, setUserPromptText] = useState("");
+  const [aiErrorMsg, setAiErrorMsg] = useState<string | null>(null);
+  const [aiGeneratedSuccess, setAiGeneratedSuccess] = useState<string | null>(null);
+  const [aiEngineUsed, setAiEngineUsed] = useState<string | null>(null);
+  const [isRestructureMode, setIsRestructureMode] = useState(false);
+  const [customApiKey, setCustomApiKey] = useState("");
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+
+  useEffect(() => {
+    try {
+      const savedKey = localStorage.getItem("presenza_gemini_api_key");
+      if (savedKey) setCustomApiKey(savedKey);
+    } catch (e) {}
+  }, []);
+
+  const handleApiKeyChange = (key: string) => {
+    setCustomApiKey(key);
+    try {
+      if (key.trim()) {
+        localStorage.setItem("presenza_gemini_api_key", key.trim());
+      } else {
+        localStorage.removeItem("presenza_gemini_api_key");
+      }
+    } catch (e) {}
+  };
 
   // Prepopulate classes & faculties from Presenza-Admin
   useEffect(() => {
@@ -474,7 +508,11 @@ export default function TimetableGeneratorView({
   };
 
   // ── Multi-Stage Pipeline: Generate → Validate → AI Repair → Final ──────────
-  const runAIEnginePipeline = async () => {
+  const runAIEnginePipeline = async (options?: {
+    userInstructions?: string;
+    isRestructure?: boolean;
+    requireAI?: boolean;
+  }) => {
     const validClasses = classes.filter((c) => c.name.trim() !== "");
     const validFaculty = facultyList.filter((f) => f.name.trim() !== "");
     const validRooms = rooms.filter((r) => r.name.trim() !== "");
@@ -491,7 +529,10 @@ export default function TimetableGeneratorView({
 
     setIsProcessing(true);
     setDetectedConflicts([]);
-    setFinalTimetable(null);
+    if (!options?.isRestructure) {
+      setFinalTimetable(null);
+    }
+    setAiErrorMsg(null);
 
     try {
       // 1. Deterministic High-Speed Conflict-Free CSP Solver (Zero Clashes Guaranteed)
@@ -830,10 +871,10 @@ export default function TimetableGeneratorView({
         return slots;
       };
 
-      // 2. Hybrid Gemini AI Model Call with Fallback (via server-side proxy)
-      const callGeminiWithFallback = async (prompt: string): Promise<string> => {
+      // 2. Gemini AI Model Call (via server-side proxy)
+      const callGemini = async (promptText: string, instructions?: string): Promise<{ text?: string; model?: string; error?: string }> => {
         try {
-          setPipelineStage("Stage 1/2: Synthesizing with Gemini AI...");
+          setPipelineStage(options?.isRestructure ? "Restructuring timetable with Gemini AI..." : "Synthesizing schedule with Gemini AI...");
 
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 45000);
@@ -842,35 +883,95 @@ export default function TimetableGeneratorView({
             method: "POST",
             signal: controller.signal,
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt }),
+            body: JSON.stringify({
+              prompt: promptText,
+              userInstructions: instructions || undefined,
+              preferredModel: "gemini-3.8-flash",
+              customApiKey: customApiKey.trim() || undefined,
+            }),
           });
           clearTimeout(timeoutId);
 
-          if (resp.ok) {
-            const data = await resp.json();
-            if (data.text) {
-              setPipelineStage(`Stage 1/2: Timetable generated with Gemini AI (${data.model})! Checking constraints...`);
-              return data.text;
-            }
+          const data = await resp.json().catch(() => ({}));
+          if (resp.ok && data.text) {
+            setPipelineStage(`Schedule generated with Gemini AI (${data.model})! Verifying constraints...`);
+            return { text: data.text, model: data.model };
           }
 
-          // Server returned an error or fallback signal — use local engine
-          const errData = await resp.json().catch(() => ({}));
-          if (errData.fallback) {
-            console.warn("Gemini unavailable, using local CSP engine.");
-          }
+          return { error: data.error || `HTTP ${resp.status}: Gemini AI call failed` };
         } catch (err: any) {
-          console.warn("Server timetable API call failed:", err?.message || err);
+          return { error: err?.message || "Connection to Gemini AI server timed out" };
         }
-
-        setPipelineStage("Running deterministic CSP scheduler...");
-        return JSON.stringify(generateLocalOptimizedTimetable());
       };
 
       // STAGE 1: Execution
-      setPipelineStage("Stage 1/2: Preparing constraints & timetable generation matrix...");
+      setPipelineStage(
+        options?.isRestructure
+          ? "Preparing restructuring instructions for AI..."
+          : "Stage 1/2: Preparing constraints & timetable generation matrix..."
+      );
 
-      const generatePrompt = `You are a college timetable scheduling engine with ZERO TOLERANCE for constraint violations.
+      let promptToSend = "";
+      if (options?.isRestructure && finalTimetable && finalTimetable.length > 0) {
+        promptToSend = `You are an expert college timetable scheduling engine. Your task is to RESTRUCTURE an existing timetable according to user instructions.
+
+Classes & Lunch Times:
+${validClasses.map((c) => `- Class "${c.name}" (ID: "${c.id}"): Lunch at Period ${c.lunchPeriod}.`).join("\n")}
+
+Faculty:
+${validFaculty.map((f) => `- "${f.name}" (${f.department}) [ID: "${f.id}"]`).join("\n")}
+
+Curriculum / Subjects:
+${validSubjects
+  .map((s) => {
+    const cls = validClasses.find((c) => c.id === s.classId);
+    const fac = validFaculty.find((f) => f.id === s.facultyId);
+    return `- [${cls?.name || s.classId}] "${s.name}" (${s.type}) - Faculty: "${fac?.name || "Faculty"}"`;
+  })
+  .join("\n")}
+
+EXISTING TIMETABLE SLOTS:
+${JSON.stringify(
+  finalTimetable
+    .map((s) => ({
+      day: s.day,
+      period: s.period,
+      classId: s.classId,
+      className: s.className,
+      subject: s.subject,
+      faculty: s.faculty,
+      secondaryFaculty: s.secondaryFaculty || "",
+      room: s.room,
+      type: s.type,
+    }))
+    .slice(0, 100)
+)}
+
+HUMAN RESTRUCTURING INSTRUCTIONS:
+"${options?.userInstructions || "Optimize and balance the timetable schedule"}"
+
+HARD CONSTRAINTS:
+1. STRICT ZERO TEACHER DOUBLE-BOOKING: No faculty member can teach two classes in the exact same day and period.
+2. STRICT CLASS LUNCH PERIOD COMPLIANCE: Do not place any lecture/lab during a class's assigned lunch period.
+3. LAB SESSIONS: Must remain continuous.
+4. Apply the user's restructuring instructions faithfully while maintaining the above constraints.
+
+Return strictly a JSON array of all timetable slots in the exact format:
+[
+  {
+    "day": "Monday",
+    "period": 1,
+    "classId": "${validClasses[0]?.id}",
+    "className": "${validClasses[0]?.name}",
+    "subject": "Subject Name",
+    "faculty": "Faculty Name",
+    "secondaryFaculty": "",
+    "room": "Room 1007",
+    "type": "THEORY"
+  }
+]`;
+      } else {
+        promptToSend = `You are a college timetable scheduling engine with ZERO TOLERANCE for constraint violations.
 Generate an exact weekly timetable (Monday to Friday, 5 days, ${periodsPerDay} periods each day) for ALL ${validClasses.length} classes.
 
 Classes & Lunch Times:
@@ -880,13 +981,21 @@ Faculty:
 ${validFaculty.map((f) => `- "${f.name}" (${f.department}) [ID: "${f.id}"]`).join("\n")}
 
 Curriculum & Weekly Periods:
-${validSubjects.map((s) => {
-  const cls = validClasses.find((c) => c.id === s.classId);
-  const fac = validFaculty.find((f) => f.id === s.facultyId);
-  const secFac = validFaculty.find((f) => f.id === s.secondaryFacultyId);
-  const facStr = [fac?.name, secFac?.name].filter(Boolean).join(" + ");
-  return `- [${cls?.name || s.classId}] "${s.name}" | Type: ${s.type} | Faculty: "${facStr}" | Weekly Periods: ${s.hoursPerWeek}`;
-}).join("\n")}
+${validSubjects
+  .map((s) => {
+    const cls = validClasses.find((c) => c.id === s.classId);
+    const fac = validFaculty.find((f) => f.id === s.facultyId);
+    const secFac = validFaculty.find((f) => f.id === s.secondaryFacultyId);
+    const facStr = [fac?.name, secFac?.name].filter(Boolean).join(" + ");
+    return `- [${cls?.name || s.classId}] "${s.name}" | Type: ${s.type} | Faculty: "${facStr}" | Weekly Periods: ${s.hoursPerWeek}`;
+  })
+  .join("\n")}
+
+${
+  options?.userInstructions
+    ? `ADDITIONAL HUMAN INSTRUCTIONS & PREFERENCES:\n"${options.userInstructions}"\nEnsure the schedule honors these user requirements while strictly satisfying all hard constraints.\n`
+    : ""
+}
 
 HARD RULES:
 1. ZERO TEACHER OVERLAPS (No faculty teaches 2 classes at once).
@@ -909,65 +1018,87 @@ Return strictly a JSON array of slots:
     "electiveGroupId": ""
   }
 ]`;
-
-      let slots: TimetableSlot[] = [];
-      try {
-        const aiResponseText = await callGeminiWithFallback(generatePrompt);
-        let cleaned = aiResponseText
-          .replace(/```json/gi, "")
-          .replace(/```/g, "")
-          .trim();
-
-        if (cleaned.startsWith("{") && cleaned.includes('"candidates"')) {
-          try {
-            const parsedEnvelope = JSON.parse(cleaned);
-            const partText = parsedEnvelope?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            if (partText) cleaned = partText.replace(/```json/gi, "").replace(/```/g, "").trim();
-          } catch (e) {}
-        }
-
-        cleaned = cleaned.replace(/,\s*([\]}])/g, "$1");
-        const start = cleaned.indexOf("[");
-        let end = cleaned.lastIndexOf("]");
-
-        if (start !== -1 && end !== -1 && end > start) {
-          slots = JSON.parse(cleaned.substring(start, end + 1));
-        } else {
-          slots = JSON.parse(cleaned);
-        }
-
-        if (Array.isArray(slots) && slots.length > 0) {
-          slots = slots
-            .filter(
-              (s) =>
-                s &&
-                s.subject &&
-                String(s.subject).toUpperCase() !== "LUNCH" &&
-                String(s.type).toUpperCase() !== "LUNCH"
-            )
-            .map((s) => {
-              const targetCls = validClasses.find(
-                (c) => c.id === s.classId || c.name.toLowerCase() === String(s.className || "").toLowerCase()
-              );
-              return {
-                day: s.day || "Monday",
-                period: Number(s.period) || 1,
-                classId: targetCls?.id || s.classId || validClasses[0].id,
-                className: targetCls?.name || s.className || validClasses[0].name,
-                subject: s.subject || "Subject",
-                faculty: s.faculty || "Faculty",
-                secondaryFaculty: s.secondaryFaculty || "",
-                room: s.room || (s.type === "LAB" ? "CC12 Lab" : "Room"),
-                type: s.type || "THEORY",
-                electiveGroupId: s.electiveGroupId || "",
-              };
-            });
-        }
-      } catch (err) {
-        slots = generateLocalOptimizedTimetable();
       }
 
-      if (!Array.isArray(slots) || slots.length === 0) {
+      let slots: TimetableSlot[] = [];
+      let generatedWithAI = false;
+      let usedModel = "";
+
+      const aiResponse = await callGemini(promptToSend, options?.userInstructions);
+      if (aiResponse.text) {
+        try {
+          let cleaned = aiResponse.text
+            .replace(/```json/gi, "")
+            .replace(/```/g, "")
+            .trim();
+
+          if (cleaned.startsWith("{") && cleaned.includes('"candidates"')) {
+            try {
+              const parsedEnvelope = JSON.parse(cleaned);
+              const partText = parsedEnvelope?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+              if (partText) cleaned = partText.replace(/```json/gi, "").replace(/```/g, "").trim();
+            } catch (e) {}
+          }
+
+          cleaned = cleaned.replace(/,\s*([\]}])/g, "$1");
+          const start = cleaned.indexOf("[");
+          let end = cleaned.lastIndexOf("]");
+
+          if (start !== -1 && end !== -1 && end > start) {
+            slots = JSON.parse(cleaned.substring(start, end + 1));
+          } else {
+            slots = JSON.parse(cleaned);
+          }
+
+          if (Array.isArray(slots) && slots.length > 0) {
+            slots = slots
+              .filter(
+                (s) =>
+                  s &&
+                  s.subject &&
+                  String(s.subject).toUpperCase() !== "LUNCH" &&
+                  String(s.type).toUpperCase() !== "LUNCH"
+              )
+              .map((s) => {
+                const targetCls = validClasses.find(
+                  (c) => c.id === s.classId || c.name.toLowerCase() === String(s.className || "").toLowerCase()
+                );
+                return {
+                  day: s.day || "Monday",
+                  period: Number(s.period) || 1,
+                  classId: targetCls?.id || s.classId || validClasses[0].id,
+                  className: targetCls?.name || s.className || validClasses[0].name,
+                  subject: s.subject || "Subject",
+                  faculty: s.faculty || "Faculty",
+                  secondaryFaculty: s.secondaryFaculty || "",
+                  room: s.room || (s.type === "LAB" ? "CC12 Lab" : "Room"),
+                  type: s.type || "THEORY",
+                  electiveGroupId: s.electiveGroupId || "",
+                };
+              });
+
+            if (slots.length > 0) {
+              generatedWithAI = true;
+              usedModel = aiResponse.model || "Gemini AI";
+            }
+          }
+        } catch (parseErr) {
+          console.error("Failed to parse AI timetable response:", parseErr);
+        }
+      }
+
+      if (!generatedWithAI) {
+        if (options?.requireAI) {
+          setAiErrorMsg(
+            aiResponse.error ||
+              "Gemini AI was unable to return a valid structured schedule. Check API key permissions or try with the Quick Solver."
+          );
+          setIsProcessing(false);
+          setPipelineStage("");
+          return;
+        }
+
+        // Automatic fallback for quick solver button
         slots = generateLocalOptimizedTimetable();
       }
 
@@ -988,6 +1119,21 @@ Return strictly a JSON array of slots:
       setFinalTimetable(slots);
       setPipelineStage("");
       setIsProcessing(false);
+      setShowAIPromptModal(false);
+      setAiErrorMsg(null);
+
+      if (generatedWithAI) {
+        setAiEngineUsed(usedModel);
+        setAiGeneratedSuccess(
+          options?.isRestructure
+            ? `Timetable successfully restructured using ${usedModel} with your custom requirements!`
+            : `Timetable successfully generated using ${usedModel} with custom human instructions!`
+        );
+      } else {
+        setAiEngineUsed(null);
+        setAiGeneratedSuccess(null);
+      }
+
       setActiveTab("TIMETABLE");
     } catch (err: any) {
       console.error(err);
@@ -1220,7 +1366,7 @@ Return strictly a JSON array of slots:
   const selectedClassLunch = selectedClassObj?.lunchPeriod || 4;
 
   return (
-    <div className="space-y-6 animate-fade-in w-full -mt-4 lg:-mt-6">
+    <div className="space-y-5 animate-fade-in w-full">
       {/* Top Header & Navigation Banner */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 lg:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -1300,20 +1446,83 @@ Return strictly a JSON array of slots:
             </button>
           )}
 
+          {/* AI Restructure Button (Visible when timetable exists) */}
+          {finalTimetable && (
+            <button
+              onClick={() => {
+                setIsRestructureMode(true);
+                setAiErrorMsg(null);
+                setShowAIPromptModal(true);
+              }}
+              disabled={isProcessing}
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 active:scale-95 text-xs font-extrabold shadow-xs transition-all cursor-pointer disabled:opacity-50"
+              title="Restructure current timetable with custom human instructions"
+            >
+              <SlidersHorizontal className="h-4 w-4 text-purple-600" />
+              <span>AI Restructure</span>
+            </button>
+          )}
+
+          {/* AI Studio Generator Button */}
           <button
-            onClick={runAIEnginePipeline}
+            onClick={() => {
+              setIsRestructureMode(false);
+              setAiErrorMsg(null);
+              setShowAIPromptModal(true);
+            }}
             disabled={isProcessing}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-extrabold shadow-md shadow-orange-500/20 transition-all cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 active:scale-95 text-white text-xs font-extrabold shadow-md shadow-indigo-500/25 transition-all cursor-pointer disabled:opacity-50"
+            title="Generate timetable using Google Gemini AI with custom human prompt instructions"
+          >
+            <Wand2 className="h-4 w-4 animate-pulse" />
+            <span>AI Generator</span>
+          </button>
+
+          {/* Quick Solver Button */}
+          <button
+            onClick={() => runAIEnginePipeline({ requireAI: false })}
+            disabled={isProcessing}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-extrabold shadow-md shadow-orange-500/20 transition-all cursor-pointer disabled:opacity-50"
+            title="Instant local multi-constraint solver"
           >
             {isProcessing ? (
               <RefreshCw className="h-4 w-4 animate-spin" />
             ) : (
               <Zap className="h-4 w-4" />
             )}
-            <span>{isProcessing ? "Solving Constraints..." : "Generate Timetable"}</span>
+            <span>{isProcessing ? "Solving..." : "Quick Solver"}</span>
           </button>
         </div>
       </div>
+
+      {/* AI Success Notification */}
+      {aiGeneratedSuccess && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 border border-indigo-200/80 shadow-sm flex items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-xs font-extrabold text-indigo-950">AI Schedule Generated</p>
+                {aiEngineUsed && (
+                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-indigo-100 border border-indigo-200 text-indigo-800 font-mono">
+                    {aiEngineUsed}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-indigo-700 font-medium mt-0.5">{aiGeneratedSuccess}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setAiGeneratedSuccess(null)}
+            className="p-1.5 text-indigo-400 hover:text-indigo-700 hover:bg-indigo-100 rounded-lg transition-colors cursor-pointer"
+            title="Dismiss"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* Processing Banner */}
       {isProcessing && (
@@ -2304,6 +2513,273 @@ Return strictly a JSON array of slots:
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── AI Prompt & Restructuring Modal ────────────────────────────── */}
+      {showAIPromptModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm overflow-y-auto flex items-start sm:items-center justify-center p-3 sm:p-6 animate-fade-in">
+          <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl my-auto overflow-hidden flex flex-col max-h-[calc(100vh-2rem)]">
+            {/* Modal Header */}
+            <div className="p-5 sm:p-6 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-purple-500 to-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                  <Wand2 className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black tracking-tight">
+                    {isRestructureMode ? "Restructure Timetable with AI" : "AI Timetable Studio"}
+                  </h3>
+                  <p className="text-xs text-indigo-200 font-medium">
+                    {isRestructureMode
+                      ? "Guide Gemini to rebalance or rearrange the existing timetable"
+                      : "Provide natural language requirements for Google Gemini AI to schedule"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setShowApiKeyInput(!showApiKeyInput)}
+                  className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                    showApiKeyInput ? "text-amber-300 bg-white/10" : "text-slate-300 hover:text-white hover:bg-white/10"
+                  }`}
+                  title="Configure Gemini API Key"
+                >
+                  <Key className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAIPromptModal(false);
+                    setAiErrorMsg(null);
+                  }}
+                  className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  title="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1">
+              {/* Optional Custom API Key Drawer */}
+              {(showApiKeyInput || aiErrorMsg) && (
+                <div className="p-4 rounded-2xl bg-amber-50/90 border border-amber-200 space-y-2.5 animate-fade-in">
+                  <div className="flex items-center justify-between flex-wrap gap-1">
+                    <label className="text-xs font-extrabold text-amber-950 flex items-center gap-1.5">
+                      <Key className="h-3.5 w-3.5 text-amber-600" />
+                      <span>Custom Google Gemini API Key</span>
+                    </label>
+                    <a
+                      href="https://aistudio.google.com/app/apikey"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline"
+                    >
+                      Get Free Key at Google AI Studio &rarr;
+                    </a>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      value={customApiKey}
+                      onChange={(e) => handleApiKeyChange(e.target.value)}
+                      placeholder="Paste your Gemini API key (starts with AIzaSy...)"
+                      className="flex-1 bg-white border border-amber-300 focus:border-amber-500 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 outline-none"
+                    />
+                    {customApiKey && (
+                      <button
+                        type="button"
+                        onClick={() => handleApiKeyChange("")}
+                        className="px-2.5 py-2 text-xs font-bold text-slate-500 hover:text-rose-600 bg-white border border-slate-200 rounded-xl cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-amber-800 leading-normal">
+                    Stored safely in your browser session. Use this if your server key has denied permissions.
+                  </p>
+                </div>
+              )}
+
+              {/* Mode Selection Tabs (if a timetable already exists) */}
+              {finalTimetable && finalTimetable.length > 0 && (
+                <div className="flex p-1 bg-slate-100 rounded-xl border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRestructureMode(false);
+                      setAiErrorMsg(null);
+                    }}
+                    className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      !isRestructureMode
+                        ? "bg-white text-indigo-700 shadow-sm"
+                        : "text-slate-500 hover:text-slate-800"
+                    }`}
+                  >
+                    <Wand2 className="h-3.5 w-3.5" />
+                    <span>Generate from Scratch</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRestructureMode(true);
+                      setAiErrorMsg(null);
+                    }}
+                    className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      isRestructureMode
+                        ? "bg-white text-purple-700 shadow-sm"
+                        : "text-slate-500 hover:text-slate-800"
+                    }`}
+                  >
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                    <span>Restructure Current Timetable</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Prompt Input Box */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <MessageSquareText className="h-4 w-4 text-indigo-600" />
+                    <span>
+                      {isRestructureMode
+                        ? "Restructuring Instructions"
+                        : "Custom Scheduling Instructions & Preferences"}
+                    </span>
+                  </label>
+                  <span className="text-[11px] text-slate-400 font-medium">Natural language prompt</span>
+                </div>
+                <textarea
+                  value={userPromptText}
+                  onChange={(e) => setUserPromptText(e.target.value)}
+                  rows={4}
+                  placeholder={
+                    isRestructureMode
+                      ? "e.g., Move DBMS Lab from Monday to Wednesday afternoon. Swap Period 1 and Period 2 for SECCJ2030A. Make sure Dr. M.Nithya only teaches forenoon sessions."
+                      : "e.g., Keep Friday afternoon (Period 6 and 7) free for project club activities. Schedule all Laboratory sessions in forenoon. Prioritize senior faculty for Period 1."
+                  }
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white rounded-2xl p-4 text-xs font-medium text-slate-800 outline-none transition-all placeholder:text-slate-400 leading-relaxed shadow-inner resize-none"
+                />
+              </div>
+
+              {/* Quick Inspiration Chips */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
+                  <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
+                  <span>Quick Preset Prompts:</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    "Keep Friday afternoon free",
+                    "Schedule all Labs in forenoon sessions",
+                    "Balance theory lectures evenly across 5 days",
+                    "Reserve Period 1 for core theory subjects",
+                    "Stagger laboratory classes across Monday to Thursday",
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => {
+                        setUserPromptText((prev) => {
+                          const trimmed = prev.trim();
+                          if (!trimmed) return preset;
+                          return `${trimmed}. ${preset}`;
+                        });
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-indigo-50/70 hover:bg-indigo-100 text-indigo-700 border border-indigo-100 text-[11px] font-semibold transition-all cursor-pointer active:scale-95 text-left"
+                    >
+                      + {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Error Callout if AI Failed */}
+              {aiErrorMsg && (
+                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 space-y-3 animate-fade-in">
+                  <div className="flex items-start gap-2.5">
+                    <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
+                    <div className="text-xs space-y-1">
+                      <p className="font-extrabold text-rose-900">Gemini AI Service Alert</p>
+                      <p className="font-mono text-[11px] leading-relaxed break-all text-rose-700">
+                        {aiErrorMsg}
+                      </p>
+                      {aiErrorMsg.includes("denied access") && (
+                        <p className="text-[11px] text-rose-800 font-medium pt-1">
+                          Tip: The Google project was denied access for this key. Paste a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline font-bold text-indigo-700">Google AI Studio</a> above, or click below to generate instantly using the local solver.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-rose-200/60">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAIPromptModal(false);
+                        runAIEnginePipeline({ requireAI: false });
+                      }}
+                      className="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-extrabold transition-all cursor-pointer shadow-sm active:scale-95"
+                    >
+                      ⚡ Use Local Solver Instead
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <Bot className="h-4 w-4 text-indigo-500" />
+                <span>Google Gemini 2.5 / Flash AI</span>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAIPromptModal(false);
+                    setAiErrorMsg(null);
+                  }}
+                  disabled={isProcessing}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    runAIEnginePipeline({
+                      userInstructions: userPromptText,
+                      isRestructure: isRestructureMode,
+                      requireAI: true,
+                    })
+                  }
+                  disabled={isProcessing}
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 active:scale-95 text-white text-xs font-extrabold shadow-md shadow-indigo-500/25 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isProcessing ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <span>
+                        {isRestructureMode ? "Restructuring Schedule..." : "Generating with Gemini..."}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      <span>
+                        {isRestructureMode ? "Restructure Timetable" : "Generate Timetable with AI"}
+                      </span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
