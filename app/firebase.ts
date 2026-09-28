@@ -3,6 +3,9 @@ import { initializeFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAuth } from "firebase/auth";
 
+// Firebase web config keys are designed to be public (they are identifiers,
+// not secrets). Access is controlled by Firestore Security Rules, Firebase
+// Auth, and App Check — not by hiding these values.
 const firebaseConfig = {
   apiKey: "AIzaSyCc6HC9JZyjHrqiTa5f9LGWwbx1ZPLlKAE",
   authDomain: "cams-f36be.firebaseapp.com",
@@ -14,9 +17,10 @@ const firebaseConfig = {
 };
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-});
+
+// Removed experimentalForceLongPolling — it's a dev workaround that degrades
+// performance in production by preventing efficient WebSocket connections.
+const db = initializeFirestore(app, {});
 const storage = getStorage(app);
 const auth = getAuth(app);
 

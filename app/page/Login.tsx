@@ -28,7 +28,9 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       await signInWithEmailAndPassword(auth, email, loginPassword);
       onLoginSuccess();
     } catch (err: any) {
-      console.error("Firebase auth login error:", err);
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Auth error code:", err?.code);
+      }
       let msg = "Invalid credentials. Please verify your admin email and password.";
       if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
         msg = "Invalid email or password. Please try again.";

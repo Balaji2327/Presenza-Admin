@@ -822,11 +822,32 @@ export default function AdminDashboard() {
     }
   };
 
-  // Listen to Firebase Auth state
+  // Listen to Firebase Auth state and verify admin role
+  const [authError, setAuthError] = useState<string | null>(null);
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        setIsLoggedIn(true);
+        try {
+          // Force-refresh the token to get the latest custom claims
+          const tokenResult = await user.getIdTokenResult(true);
+          const isAdminClaim = tokenResult.claims.admin === true || tokenResult.claims.role === "admin";
+          const isAdminEmail = user.email?.toLowerCase() === "admin@presenza.app";
+
+          if (isAdminClaim || isAdminEmail) {
+            setIsLoggedIn(true);
+            setAuthError(null);
+          } else {
+            // Authenticated but NOT an admin — deny access
+            await signOut(auth);
+            setIsLoggedIn(false);
+            setAuthError("Access denied. This account does not have admin privileges.");
+          }
+        } catch (err) {
+          console.error("Error verifying admin claims:", err);
+          await signOut(auth);
+          setIsLoggedIn(false);
+          setAuthError("Authentication verification failed. Please try again.");
+        }
       } else {
         setIsLoggedIn(false);
       }
@@ -928,28 +949,48 @@ export default function AdminDashboard() {
     }
   };
 
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isValidDocId = (id: string) => /^[a-zA-Z0-9_-]{2,50}$/.test(id);
+
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newStudent.id || !newStudent.name || !newStudent.email || !newStudent.department || !newStudent.class) {
+    const cleanId = (newStudent.id || "").trim();
+    const cleanName = (newStudent.name || "").trim();
+    const cleanEmail = (newStudent.email || "").trim();
+    const cleanDept = (newStudent.department || "").trim();
+    const cleanClass = (newStudent.class || "").trim();
+
+    if (!cleanId || !cleanName || !cleanEmail || !cleanDept || !cleanClass) {
       showPopup("warning", "Warning", "Please fill in all required fields.");
       return;
     }
+
+    if (!isValidDocId(cleanId)) {
+      showPopup("warning", "Warning", "Student ID must only contain letters, numbers, hyphens, or underscores (2-50 characters).");
+      return;
+    }
+
+    if (!isValidEmail(cleanEmail)) {
+      showPopup("warning", "Warning", "Please enter a valid email address.");
+      return;
+    }
+
     try {
       setSavingStudent(true);
-      const studentDocRef = doc(db, "colleges", "students", "all_students", newStudent.id);
+      const studentDocRef = doc(db, "colleges", "students", "all_students", cleanId);
       const studentSnap = await getDoc(studentDocRef);
       if (studentSnap.exists()) {
-        showPopup("warning", "Warning", `A student with ID ${newStudent.id} already exists!`);
+        showPopup("warning", "Warning", `A student with ID ${cleanId} already exists!`);
         setSavingStudent(false);
         return;
       }
 
       await setDoc(studentDocRef, {
-        name: newStudent.name,
-        email: newStudent.email,
-        class: newStudent.class,
-        department: newStudent.department,
-        mentor_id: newStudent.mentor_id || "",
+        name: cleanName,
+        email: cleanEmail,
+        class: cleanClass,
+        department: cleanDept,
+        mentor_id: (newStudent.mentor_id || "").trim(),
         semester: newStudent.semester || selectedSemester || "I",
       });
 
@@ -1009,7 +1050,6 @@ export default function AdminDashboard() {
         email: editingFaculty.email,
         department: editingFaculty.department,
         classes: editingFaculty.classes,
-        password: editingFaculty.password || "faculty123",
         role: editingFaculty.role || "faculty",
       });
       showPopup("success", "Success", "Faculty updated successfully!");
@@ -1085,14 +1125,29 @@ export default function AdminDashboard() {
 
   const handleAddFaculty = async (e: React.FormEvent) => {
     e.preventDefault();
-    const targetDeptId = editingFacultyDeptId || (selectedDept?.id || "");
-    if (!facultyId || !facultyName || !facultyEmail || !targetDeptId) {
+    const cleanFacultyId = facultyId.trim();
+    const cleanFacultyName = facultyName.trim();
+    const cleanFacultyEmail = facultyEmail.trim();
+    const targetDeptId = (editingFacultyDeptId || (selectedDept?.id || "")).trim();
+
+    if (!cleanFacultyId || !cleanFacultyName || !cleanFacultyEmail || !targetDeptId) {
       showPopup("warning", "Warning", "Please fill in all required fields (ID, Name, Email, Department).");
       return;
     }
+
+    if (!isValidDocId(cleanFacultyId)) {
+      showPopup("warning", "Warning", "Faculty ID must only contain letters, numbers, hyphens, or underscores (2-50 characters).");
+      return;
+    }
+
+    if (!isValidEmail(cleanFacultyEmail)) {
+      showPopup("warning", "Warning", "Please enter a valid email address.");
+      return;
+    }
+
     try {
       setAddingFaculty(true);
-      const docRef = doc(db, "colleges", "faculties", "all_faculties", facultyId);
+      const docRef = doc(db, "colleges", "faculties", "all_faculties", cleanFacultyId);
       
       const classesArr = facultyClassesInput
         .split(",")
@@ -1100,11 +1155,10 @@ export default function AdminDashboard() {
         .filter((c) => c.length > 0);
 
       const facultyData = {
-        id: facultyId,
-        name: facultyName,
-        email: facultyEmail,
+        id: cleanFacultyId,
+        name: cleanFacultyName,
+        email: cleanFacultyEmail,
         department: targetDeptId,
-        password: facultyPassword || "faculty123",
         classes: classesArr,
         role: facultyRole,
         mentees: []
@@ -1572,7 +1626,30 @@ export default function AdminDashboard() {
   }
 
   if (!isLoggedIn) {
-    return <Login onLoginSuccess={handleLoginSuccess} />;
+    return (
+      <div>
+        <Login onLoginSuccess={handleLoginSuccess} />
+        {authError && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-sm p-6 text-center animate-in zoom-in-95 duration-200">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-rose-50 border border-rose-100 mb-4">
+                <svg className="h-6 w-6 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-base font-extrabold text-slate-800">Access Denied</h3>
+              <p className="text-xs text-slate-500 font-semibold mt-2">{authError}</p>
+              <button
+                onClick={() => setAuthError(null)}
+                className="mt-5 w-full py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer"
+              >
+                Okay
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   }
 
   const filteredAllStudents = allStudents.filter((s) => {
@@ -3101,13 +3178,9 @@ export default function AdminDashboard() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Password</label>
-                <input
-                  type="password"
-                  placeholder="Leave empty for default 'faculty123'"
-                  value={facultyPassword}
-                  onChange={(e) => setFacultyPassword(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500"
-                />
+                <p className="text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+                  Passwords are managed via Firebase Auth. The default password &ldquo;faculty123&rdquo; is set during user provisioning.
+                </p>
               </div>
 
               <div>
@@ -3225,13 +3298,9 @@ export default function AdminDashboard() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Password</label>
-                <input
-                  type="password"
-                  placeholder="Enter new password or leave blank"
-                  value={editingFaculty.password || ""}
-                  onChange={(e) => setEditingFaculty({ ...editingFaculty, password: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500"
-                />
+                <p className="text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+                  To reset a password, use the Firebase Console or a Cloud Function. Passwords are not stored in Firestore.
+                </p>
               </div>
 
               <div>
