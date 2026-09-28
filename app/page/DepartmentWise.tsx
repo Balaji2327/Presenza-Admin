@@ -144,137 +144,132 @@ export default function DepartmentWise({
       : [];
 
   return (
-    <div className="space-y-6 animate-fade-in w-full -mt-4 lg:-mt-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-4">
-          <div>
-            <h2 className="text-xl lg:text-2xl font-extrabold text-slate-800">
-              {departmentName} — Attendance Overview
-            </h2>
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-              Department-wise Stats
-            </p>
-          </div>
+    <div className="space-y-6 animate-fade-in w-full">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+            {departmentName} Overview
+          </h1>
+          <p className="text-xs text-slate-500 font-normal mt-0.5">
+            Real-time daily attendance metrics and departmental operations
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-slate-500">Date:</label>
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500 cursor-pointer"
+            className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-800 outline-none focus:border-slate-800 transition-colors cursor-pointer shadow-2xs"
           />
         </div>
       </div>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500" />
-          <p className="text-slate-500 text-sm font-semibold">Calculating attendance data...</p>
+        <div className="flex flex-col items-center justify-center py-20 gap-3 bg-white border border-slate-200/80 rounded-xl">
+          <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-slate-800" />
+          <p className="text-slate-500 text-xs font-medium">Aggregating departmental attendance records...</p>
         </div>
       ) : (
         <>
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-5">
+          {/* Summary Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
             {/* Total Students Card */}
             <button
               onClick={() => setSelectedCategory(selectedCategory === "total" ? null : "total")}
-              className={`text-left bg-white border rounded-2xl p-5 shadow-sm flex items-center justify-between transition-all cursor-pointer ${
+              className={`text-left bg-white border rounded-xl p-4 transition-all cursor-pointer shadow-2xs ${
                 selectedCategory === "total"
-                  ? "border-blue-500 ring-2 ring-blue-500/10 shadow-blue-500/5 bg-blue-50/20"
-                  : "border-slate-200 hover:border-blue-200 hover:shadow-md"
+                  ? "border-slate-800 ring-1 ring-slate-800 bg-slate-50/50"
+                  : "border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/30"
               }`}
             >
-              <div>
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Total Students</span>
-                <h3 className="text-3xl font-extrabold text-slate-800 mt-1">{students.length}</h3>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Total Enrolled</span>
+                <Users className="h-4 w-4 text-slate-400" />
               </div>
-              <div className="h-12 w-12 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-600 shrink-0">
-                <Users className="h-6 w-6" />
+              <div className="mt-2.5">
+                <span className="text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">{students.length}</span>
+                <span className="text-[11px] text-slate-400 block mt-0.5">Students in department</span>
               </div>
             </button>
 
-            {/* Present Card */}
+            {/* Present Today Card */}
             <button
               onClick={() => setSelectedCategory(selectedCategory === "present" ? null : "present")}
-              className={`text-left bg-white border rounded-2xl p-5 shadow-sm flex items-center justify-between transition-all cursor-pointer ${
+              className={`text-left bg-white border rounded-xl p-4 transition-all cursor-pointer shadow-2xs ${
                 selectedCategory === "present"
-                  ? "border-emerald-500 ring-2 ring-emerald-500/10 shadow-emerald-500/5 bg-emerald-50/20"
-                  : "border-slate-200 hover:border-emerald-200 hover:shadow-md"
+                  ? "border-orange-600 ring-1 ring-orange-600 bg-orange-50/20"
+                  : "border-slate-200/80 hover:border-orange-300 hover:bg-orange-50/10"
               }`}
             >
-              <div>
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Present Today</span>
-                <h3 className="text-3xl font-extrabold text-emerald-600 mt-1">{presentStudents.length}</h3>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Present Today</span>
+                <CheckCircle className="h-4 w-4 text-orange-600" />
               </div>
-              <div className="h-12 w-12 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 shrink-0">
-                <CheckCircle className="h-6 w-6" />
+              <div className="mt-2.5">
+                <span className="text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">{presentStudents.length}</span>
+                <span className="text-[11px] text-slate-400 block mt-0.5">
+                  {students.length > 0 ? `${Math.round((presentStudents.length / students.length) * 100)}% attendance rate` : "No data"}
+                </span>
               </div>
             </button>
 
-            {/* Absent Card */}
+            {/* Absent Today Card */}
             <button
               onClick={() => setSelectedCategory(selectedCategory === "absent" ? null : "absent")}
-              className={`text-left bg-white border rounded-2xl p-5 shadow-sm flex items-center justify-between transition-all cursor-pointer ${
+              className={`text-left bg-white border rounded-xl p-4 transition-all cursor-pointer shadow-2xs ${
                 selectedCategory === "absent"
-                  ? "border-rose-500 ring-2 ring-rose-500/10 shadow-rose-500/5 bg-rose-50/20"
-                  : "border-slate-200 hover:border-rose-200 hover:shadow-md"
+                  ? "border-rose-600 ring-1 ring-rose-600 bg-rose-50/20"
+                  : "border-slate-200/80 hover:border-rose-300 hover:bg-rose-50/10"
               }`}
             >
-              <div>
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest font-extrabold">Absent Today</span>
-                <h3 className="text-3xl font-extrabold text-rose-600 mt-1">{absentStudents.length}</h3>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Absent Today</span>
+                <XCircle className="h-4 w-4 text-rose-600" />
               </div>
-              <div className="h-12 w-12 bg-rose-50 border border-rose-100 rounded-xl flex items-center justify-center text-rose-600 shrink-0">
-                <XCircle className="h-6 w-6" />
+              <div className="mt-2.5">
+                <span className="text-2xl font-semibold tracking-tight text-rose-700 tabular-nums">{absentStudents.length}</span>
+                <span className="text-[11px] text-slate-400 block mt-0.5">Flagged absences</span>
               </div>
             </button>
 
             {/* View Faculty Card */}
-            <div 
+            <button 
               onClick={onViewFaculty}
-              className="bg-white border border-slate-200 p-5 rounded-2xl flex items-center justify-between shadow-sm cursor-pointer hover:border-indigo-400 hover:shadow-md transition-all group"
+              className="text-left bg-white border border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/40 p-4 rounded-xl shadow-2xs transition-all cursor-pointer group"
             >
-              <div>
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest group-hover:text-indigo-500 transition-colors">
-                  Dept Faculty
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Department Faculty</span>
+                <Users className="h-4 w-4 text-slate-400 group-hover:text-slate-700 transition-colors" />
+              </div>
+              <div className="mt-2.5">
+                <span className="text-sm font-semibold text-slate-900 group-hover:text-slate-800 transition-colors block">
+                  View Faculty List
                 </span>
-                <h3 className="text-xl font-bold text-slate-600 mt-1 group-hover:text-indigo-600 transition-colors">
-                  View All
-                </h3>
+                <span className="text-[11px] text-slate-400 block mt-0.5">Manage assignments & roles</span>
               </div>
-              <div className="h-12 w-12 bg-indigo-50 text-indigo-500 rounded-xl border border-indigo-100 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-all shrink-0">
-                <Users className="h-6 w-6" />
-              </div>
-            </div>
+            </button>
 
-            {/* Time Table Card (SchedulAI Engine) */}
-            <div 
+            {/* Time Table Card */}
+            <button 
               onClick={onViewTimetable}
-              className="bg-white border border-slate-200 p-5 rounded-2xl flex items-center justify-between shadow-sm cursor-pointer hover:border-orange-400 hover:shadow-md transition-all group relative overflow-hidden"
+              className="text-left bg-white border border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/40 p-4 rounded-xl shadow-2xs transition-all cursor-pointer group"
             >
-              <div className="z-10">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest group-hover:text-orange-500 transition-colors">
-                  Time Table
-                </span>
-                <h3 className="text-xl font-extrabold text-slate-800 mt-1 group-hover:text-orange-600 transition-colors flex items-center gap-1.5">
-                  Generate
-                </h3>
-              </div>
-              <div className="h-12 w-12 bg-orange-50 text-orange-500 rounded-xl border border-orange-100 flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-all shrink-0 z-10">
-                <Users className="hidden" /> {/* placeholder to maintain alignment */}
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Schedule Engine</span>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
+                  width="16"
+                  height="16"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="h-6 w-6"
+                  className="text-slate-400 group-hover:text-slate-700 transition-colors"
                 >
                   <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
                   <line x1="16" x2="16" y1="2" y2="6" />
@@ -283,39 +278,57 @@ export default function DepartmentWise({
                   <path d="m9 16 2 2 4-4" />
                 </svg>
               </div>
-            </div>
+              <div className="mt-2.5">
+                <span className="text-sm font-semibold text-slate-900 group-hover:text-slate-800 transition-colors block">
+                  Class Timetable
+                </span>
+                <span className="text-[11px] text-slate-400 block mt-0.5">Edit or AI-generate grids</span>
+              </div>
+            </button>
           </div>
 
           {/* Drilldown List */}
           {selectedCategory && (
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden animate-slide-up">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h3 className="text-sm font-extrabold text-slate-800 capitalize">
-                  {selectedCategory} Students List ({activeCategoryList.length})
-                </h3>
+            <div className="bg-white border border-slate-200/80 rounded-xl shadow-2xs overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/40">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-slate-800" />
+                  <h3 className="text-xs font-semibold text-slate-900 capitalize">
+                    {selectedCategory} Students ({activeCategoryList.length})
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setSelectedCategory(null)}
+                  className="text-[11px] font-medium text-slate-500 hover:text-slate-800 cursor-pointer"
+                >
+                  Dismiss view
+                </button>
               </div>
+
               <div className="overflow-x-auto">
                 {activeCategoryList.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400 text-sm font-semibold">
-                    No students in this category.
+                  <div className="text-center py-10 text-slate-400 text-xs font-medium">
+                    No students recorded under this category for the selected date.
                   </div>
                 ) : (
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-100">
-                        <th className="px-6 py-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Student ID</th>
-                        <th className="px-6 py-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Name</th>
-                        <th className="px-6 py-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Class</th>
-                        <th className="px-6 py-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Email</th>
+                      <tr className="border-b border-slate-100 bg-slate-50/30">
+                        <th className="px-5 py-2.5 text-[11px] font-medium uppercase tracking-wider text-slate-400">Student ID</th>
+                        <th className="px-5 py-2.5 text-[11px] font-medium uppercase tracking-wider text-slate-400">Name</th>
+                        <th className="px-5 py-2.5 text-[11px] font-medium uppercase tracking-wider text-slate-400">Class</th>
+                        <th className="px-5 py-2.5 text-[11px] font-medium uppercase tracking-wider text-slate-400">Email</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 text-xs">
                       {activeCategoryList.map((student) => (
                         <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-6 py-3.5 text-xs font-bold text-slate-700">{student.id}</td>
-                          <td className="px-6 py-3.5 text-xs font-bold text-slate-800">{student.name}</td>
-                          <td className="px-6 py-3.5 text-xs font-bold text-slate-600">{student.class}</td>
-                          <td className="px-6 py-3.5 text-xs text-slate-500 font-medium">{student.email}</td>
+                          <td className="px-5 py-3 font-mono font-medium text-slate-700">{student.id}</td>
+                          <td className="px-5 py-3 font-medium text-slate-900">{student.name}</td>
+                          <td className="px-5 py-3 text-slate-600">
+                            <span className="px-2 py-0.5 rounded bg-slate-100 font-medium text-[11px]">{student.class}</span>
+                          </td>
+                          <td className="px-5 py-3 text-slate-500">{student.email}</td>
                         </tr>
                       ))}
                     </tbody>

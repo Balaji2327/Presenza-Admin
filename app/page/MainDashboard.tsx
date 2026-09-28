@@ -198,9 +198,9 @@ export default function AdminDashboard() {
       return <span className="ml-1 text-slate-350 group-hover:text-slate-500 text-[10px] transition-colors">⇅</span>;
     }
     return sortOrder === "asc" ? (
-      <span className="ml-1 text-orange-500 text-[10px]">▲</span>
+      <span className="ml-1 text-orange-600 text-[10px]">▲</span>
     ) : (
-      <span className="ml-1 text-orange-500 text-[10px]">▼</span>
+      <span className="ml-1 text-orange-600 text-[10px]">▼</span>
     );
   };
   const [selectedDate, setSelectedDate] = useState<string>(() => {
@@ -1625,7 +1625,7 @@ export default function AdminDashboard() {
   if (checkingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600" />
       </div>
     );
   }
@@ -1646,7 +1646,7 @@ export default function AdminDashboard() {
               <p className="text-xs text-slate-500 font-semibold mt-2">{authError}</p>
               <button
                 onClick={() => setAuthError(null)}
-                className="mt-5 w-full py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer"
+                className="mt-5 w-full py-2 bg-orange-600 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer"
               >
                 Okay
               </button>
@@ -1738,50 +1738,59 @@ export default function AdminDashboard() {
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         {/* Top Header - Hidden in Timetable view since TimetableGeneratorView has its own dedicated navigation header */}
         {currentView !== "timetable" && (
-          <header className="h-14 lg:h-20 border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 bg-white shadow-sm z-10 shrink-0">
+          <header className="h-16 border-b border-slate-200/80 flex items-center justify-between px-4 lg:px-8 bg-white z-10 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               {/* Hamburger Menu for Mobile */}
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 hover:bg-slate-100 rounded-xl text-slate-600 hover:text-slate-900 transition-colors cursor-pointer shrink-0"
+                className="lg:hidden p-2 hover:bg-slate-100 rounded-lg text-slate-600 hover:text-slate-900 transition-colors cursor-pointer shrink-0"
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <h2 className="text-sm lg:text-lg font-extrabold text-slate-800 truncate">
-                {currentView === "students" && (
-                  studentSubView === "list" ? "Student Profiles" :
-                  studentSubView === "attendance" ? `Attendance — ${selectedClass || ""}` :
-                  `Timetable — ${selectedClass || ""}`
-                )}
-                {currentView === "faculty" && "Faculty Management"}
-                {currentView === "news" && "News Management"}
-                {currentView === "department-wise" && "Department Overview"}
-              </h2>
+              <div>
+                <h1 className="text-base font-semibold text-slate-900 truncate tracking-tight">
+                  {currentView === "students" && (
+                    studentSubView === "list" ? "Student Directory" :
+                    studentSubView === "attendance" ? `Class Attendance · ${selectedClass || ""}` :
+                    `Class Timetable · ${selectedClass || ""}`
+                  )}
+                  {currentView === "faculty" && "Faculty Management Directory"}
+                  {currentView === "news" && "Campus Bulletins & Announcements"}
+                  {currentView === "department-wise" && "Department Overview & Attendance"}
+                </h1>
+                <p className="text-[11px] text-slate-400 font-normal hidden sm:block">
+                  Academic Operations Management Portal
+                </p>
+              </div>
             </div>
 
-            <div className="flex items-center gap-4">
-            </div>
+            {/* <div className="flex items-center gap-3">
+              <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-800 border border-slate-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-orange-600 animate-pulse" />
+                Live Data Synchronized
+              </span>
+            </div> */}
           </header>
         )}
 
         {/* Dashboard Content */}
-        <div className={`flex-1 overflow-y-auto select-none ${currentView === "timetable" ? "p-2 sm:p-4 pt-2 sm:pt-3" : "p-4 lg:p-8 space-y-4 lg:space-y-6"}`}>
+        <div className={`flex-1 overflow-y-auto ${currentView === "timetable" ? "p-2 sm:p-4 pt-2 sm:pt-3" : "p-4 lg:p-8 space-y-5"}`}>
           {/* Students -> Sub-view list */}
           {currentView === "students" && studentSubView === "list" && (
-            <div className="space-y-4 lg:space-y-6 animate-fade-in">
+            <div className="space-y-4 animate-fade-in">
               {/* Search & Filter Header */}
-              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 items-stretch sm:items-center justify-between bg-white border border-slate-200 p-4 lg:p-6 rounded-2xl shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 items-stretch sm:items-center justify-between bg-white border border-slate-200/80 p-4 sm:p-5 rounded-xl shadow-2xs">
                 <div className="relative w-full sm:w-80">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Search all students..."
+                    placeholder="Search students by name, ID, class..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-205 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-orange-500"
+                    className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3.5 py-2 text-xs font-normal outline-none focus:border-slate-800 transition-colors placeholder:text-slate-400"
                   />
                 </div>
-                <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end flex-wrap">
+                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end flex-wrap">
                   <div className="relative">
                     <button
                       onClick={() => {
@@ -1791,20 +1800,21 @@ export default function AdminDashboard() {
                         }
                         setShowFilterPopover(!showFilterPopover);
                       }}
-                      className={`p-2.5 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                      className={`px-3 py-2 rounded-lg border text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
                         filterDept || filterClass
-                          ? "bg-orange-50 border-orange-200 text-orange-600 shadow-xs"
-                          : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                          ? "bg-slate-900 border-slate-900 text-white"
+                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
                       }`}
                       title="Filter by Department & Class"
                     >
-                      <Filter className="h-4 w-4" />
+                      <Filter className="h-3.5 w-3.5" />
+                      <span>{filterDept || filterClass ? "Filters Active" : "Filter"}</span>
                     </button>
 
                     {showFilterPopover && (
-                      <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 z-20 space-y-3">
+                      <div className="absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-xl shadow-lg p-4 z-20 space-y-3">
                         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                          <span className="text-xs font-bold text-slate-800">Filter Records</span>
+                          <span className="text-xs font-semibold text-slate-900">Filter Records</span>
                           {(filterDept || filterClass || tempDept || tempClass) && (
                             <button
                               onClick={() => {
@@ -1814,15 +1824,15 @@ export default function AdminDashboard() {
                                 setFilterClass("");
                                 setShowFilterPopover(false);
                               }}
-                              className="text-[10px] font-bold text-rose-500 hover:underline cursor-pointer"
+                              className="text-[11px] font-medium text-rose-600 hover:text-rose-700 cursor-pointer"
                             >
-                              Clear All
+                              Reset
                             </button>
                           )}
                         </div>
 
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Department</label>
+                        <div className="space-y-1">
+                          <label className="block text-[11px] font-medium text-slate-500 uppercase">Department</label>
                           <select
                             value={tempDept?.id || ""}
                             onChange={(e) => {
@@ -1831,7 +1841,7 @@ export default function AdminDashboard() {
                               setTempDept(dept || null);
                               setTempClass("");
                             }}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-bold outline-none cursor-pointer"
+                            className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-medium outline-none focus:border-slate-800 cursor-pointer"
                           >
                             <option value="">All Departments</option>
                             {departments.map((d) => (
@@ -1842,12 +1852,12 @@ export default function AdminDashboard() {
                           </select>
                         </div>
 
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Class</label>
+                        <div className="space-y-1">
+                          <label className="block text-[11px] font-medium text-slate-500 uppercase">Class</label>
                           <select
                             value={tempClass}
                             onChange={(e) => setTempClass(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-bold outline-none cursor-pointer disabled:cursor-not-allowed"
+                            className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-medium outline-none focus:border-slate-800 cursor-pointer disabled:bg-slate-50 disabled:cursor-not-allowed"
                             disabled={!tempDept}
                           >
                             <option value="">All Classes</option>
@@ -1859,7 +1869,7 @@ export default function AdminDashboard() {
                           </select>
                         </div>
 
-                        <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                        <div className="flex justify-end pt-2 border-t border-slate-100">
                           <button
                             type="button"
                             onClick={() => {
@@ -1867,9 +1877,9 @@ export default function AdminDashboard() {
                               setFilterClass(tempClass);
                               setShowFilterPopover(false);
                             }}
-                            className="w-full py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg transition-all cursor-pointer text-center"
+                            className="w-full py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer text-center"
                           >
-                            Apply Filter
+                            Apply Filters
                           </button>
                         </div>
                       </div>
@@ -1891,46 +1901,44 @@ export default function AdminDashboard() {
                         semester: classCurrentSemester || "I"
                       });
                     }}
-                    className="px-3 sm:px-4 py-2 sm:py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer whitespace-nowrap"
+                    className="px-3.5 py-2 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white text-xs font-medium rounded-lg shadow-2xs transition-colors cursor-pointer whitespace-nowrap"
                   >
                     + Add Student
                   </button>
-                  <div className="text-xs font-bold text-slate-400 uppercase shrink-0 hidden sm:block">
+                  <div className="text-xs font-medium text-slate-400 shrink-0 hidden sm:block">
                     Total: {filteredAllStudents.length}
                   </div>
                 </div>
               </div>
 
               {/* Students - Mobile Card View */}
-              <div className="md:hidden space-y-3">
+              <div className="md:hidden space-y-2.5">
                 {loadingAllStudents ? (
-                  <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-400 font-bold shadow-sm">Loading student profiles...</div>
+                  <div className="bg-white border border-slate-200/80 rounded-xl p-8 text-center text-slate-400 text-xs font-medium">Loading student directory...</div>
                 ) : filteredAllStudents.length === 0 ? (
-                  <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-400 font-bold shadow-sm">No students found.</div>
+                  <div className="bg-white border border-slate-200/80 rounded-xl p-8 text-center text-slate-400 text-xs font-medium">No students match current search or filters.</div>
                 ) : (
                   filteredAllStudents.map((student) => (
-                    <div key={student.id} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
+                    <div key={student.id} className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-2xs space-y-2.5">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <h4 className="text-sm font-bold text-slate-800 truncate">{student.name}</h4>
+                          <h4 className="text-xs font-semibold text-slate-900 truncate">{student.name}</h4>
                           <p className="text-[11px] font-mono text-slate-500 mt-0.5">{student.id}</p>
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold">{student.class}</span>
-                        </div>
+                        <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-medium shrink-0">{student.class}</span>
                       </div>
-                      <div className="space-y-1.5 text-xs text-slate-500">
+                      <div className="space-y-1 text-xs text-slate-600">
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-400 font-bold w-12 shrink-0">Email</span>
-                          <span className="font-medium truncate">{student.email}</span>
+                          <span className="text-slate-400 w-12 shrink-0 text-[11px]">Email</span>
+                          <span className="truncate">{student.email}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-400 font-bold w-12 shrink-0">Dept</span>
-                          <span className="font-semibold">{student.department}</span>
+                          <span className="text-slate-400 w-12 shrink-0 text-[11px]">Dept</span>
+                          <span>{student.department}</span>
                         </div>
                         {student.mentor_id && (
                           <div className="flex items-center gap-2">
-                            <span className="text-slate-400 font-bold w-12 shrink-0">Mentor</span>
+                            <span className="text-slate-400 w-12 shrink-0 text-[11px]">Mentor</span>
                             <span className="font-mono text-xs">{student.mentor_id}</span>
                           </div>
                         )}
@@ -1941,13 +1949,13 @@ export default function AdminDashboard() {
                             setEditingStudent(student);
                             setOriginalStudentId(student.id);
                           }}
-                          className="flex-1 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-100 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
+                          className="flex-1 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-md text-xs font-medium transition-colors cursor-pointer text-center"
                         >
-                          Edit
+                          Edit Profile
                         </button>
                         <button
                           onClick={() => handleDeleteStudent(student.id)}
-                          className="flex-1 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
+                          className="flex-1 py-1.5 bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 hover:border-rose-200 rounded-md text-xs font-medium transition-colors cursor-pointer text-center"
                         >
                           Delete
                         </button>
@@ -1958,51 +1966,53 @@ export default function AdminDashboard() {
               </div>
 
               {/* Students - Desktop Table View */}
-              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hidden md:block">
+              <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-2xs hidden md:block">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-400 uppercase">
-                        <th className="p-4 pl-6">Student ID</th>
-                        <th className="p-4">Name</th>
-                        <th className="p-4">Email</th>
-                        <th className="p-4">Department</th>
-                        <th className="p-4">Class</th>
-                        <th className="p-4">Mentor ID</th>
-                        <th className="p-4 pr-6 text-right">Actions</th>
+                      <tr className="border-b border-slate-100 text-[11px] font-medium text-slate-400 uppercase tracking-wider bg-slate-50/40">
+                        <th className="px-5 py-3 pl-6">Student ID</th>
+                        <th className="px-5 py-3">Student Name</th>
+                        <th className="px-5 py-3">Email Address</th>
+                        <th className="px-5 py-3">Department</th>
+                        <th className="px-5 py-3">Class</th>
+                        <th className="px-5 py-3">Mentor ID</th>
+                        <th className="px-5 py-3 pr-6 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-600">
+                    <tbody className="divide-y divide-slate-100 text-xs">
                       {loadingAllStudents ? (
                         <tr>
-                          <td colSpan={7} className="text-center py-8 text-slate-400 font-bold">Loading student profiles...</td>
+                          <td colSpan={7} className="text-center py-10 text-slate-400 font-medium">Loading student directory...</td>
                         </tr>
                       ) : filteredAllStudents.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="text-center py-8 text-slate-400 font-bold">No students found.</td>
+                          <td colSpan={7} className="text-center py-10 text-slate-400 font-medium">No students found.</td>
                         </tr>
                       ) : (
                         filteredAllStudents.map((student) => (
-                          <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="p-4 pl-6 font-mono text-xs text-slate-800">{student.id}</td>
-                            <td className="p-4 text-slate-800 font-bold">{student.name}</td>
-                            <td className="p-4 text-slate-500 font-medium">{student.email}</td>
-                            <td className="p-4">{student.department}</td>
-                            <td className="p-4"><span className="px-2.5 py-1 bg-slate-100 text-slate-650 rounded-lg text-xs font-bold">{student.class}</span></td>
-                            <td className="p-4 font-mono text-xs">{student.mentor_id || "-"}</td>
-                            <td className="p-4 pr-6 text-right flex justify-end gap-2">
+                          <tr key={student.id} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="px-5 py-3 pl-6 font-mono font-medium text-slate-600">{student.id}</td>
+                            <td className="px-5 py-3 text-slate-900 font-medium">{student.name}</td>
+                            <td className="px-5 py-3 text-slate-500">{student.email}</td>
+                            <td className="px-5 py-3 text-slate-600">{student.department}</td>
+                            <td className="px-5 py-3">
+                              <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[11px] font-medium">{student.class}</span>
+                            </td>
+                            <td className="px-5 py-3 font-mono text-slate-500">{student.mentor_id || "—"}</td>
+                            <td className="px-5 py-3 pr-6 text-right flex justify-end gap-2">
                               <button
                                 onClick={() => {
                                   setEditingStudent(student);
                                   setOriginalStudentId(student.id);
                                 }}
-                                className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                                className="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium border border-slate-200 rounded-md transition-colors cursor-pointer shadow-2xs"
                               >
                                 Edit
                               </button>
                               <button
                                 onClick={() => handleDeleteStudent(student.id)}
-                                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                                className="px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 hover:border-rose-200 rounded-md text-xs font-medium transition-colors cursor-pointer"
                               >
                                 Delete
                               </button>
@@ -2074,20 +2084,20 @@ export default function AdminDashboard() {
           )}
 
           {currentView === "faculty" && (
-            <div className="space-y-4 lg:space-y-6 animate-fade-in">
+            <div className="space-y-4 lg:space-y-5 animate-fade-in">
               {/* Search & Add Faculty Header */}
-              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 items-stretch sm:items-center justify-between bg-white border border-slate-200 p-4 lg:p-6 rounded-2xl shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 items-stretch sm:items-center justify-between bg-white border border-slate-200 p-4 sm:p-5 rounded-xl shadow-xs">
                 <div className="relative w-full sm:w-80">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Search all faculty..."
+                    placeholder="Search by faculty name or ID..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-205 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-orange-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-xs font-medium text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-900 focus:bg-white transition-all"
                   />
                 </div>
-                <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end flex-wrap">
+                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end flex-wrap">
                   <div className="relative">
                     <button
                       onClick={() => {
@@ -2097,20 +2107,24 @@ export default function AdminDashboard() {
                         }
                         setShowFilterPopover(!showFilterPopover);
                       }}
-                      className={`p-2.5 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                      className={`h-9 px-3 rounded-lg border text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
                         filterDept || filterClass
                           ? "bg-orange-50 border-orange-200 text-orange-600 shadow-xs"
-                          : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                       }`}
                       title="Filter by Department & Class"
                     >
-                      <Filter className="h-4 w-4" />
+                      <Filter className="h-3.5 w-3.5" />
+                      <span>Filter</span>
+                      {(filterDept || filterClass) && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-600"></span>
+                      )}
                     </button>
 
                     {showFilterPopover && (
-                      <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 z-20 space-y-3">
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                          <span className="text-xs font-bold text-slate-800">Filter Records</span>
+                      <div className="absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-xl shadow-lg p-4 z-20 space-y-3.5">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                          <span className="text-xs font-bold text-slate-900">Filter Records</span>
                           {(filterDept || filterClass || tempDept || tempClass) && (
                             <button
                               onClick={() => {
@@ -2121,15 +2135,15 @@ export default function AdminDashboard() {
                                 setFromDeptFaculty(false);
                                 setShowFilterPopover(false);
                               }}
-                              className="text-[10px] font-bold text-rose-500 hover:underline cursor-pointer"
+                              className="text-[11px] font-semibold text-rose-600 hover:underline cursor-pointer"
                             >
-                              Clear All
+                              Reset
                             </button>
                           )}
                         </div>
 
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Department</label>
+                          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Department</label>
                           <select
                             value={tempDept?.id || ""}
                             onChange={(e) => {
@@ -2138,7 +2152,7 @@ export default function AdminDashboard() {
                               setTempDept(dept || null);
                               setTempClass("");
                             }}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-bold outline-none cursor-pointer"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 font-medium outline-none cursor-pointer focus:border-slate-900"
                           >
                             <option value="">All Departments</option>
                             {departments.map((d) => (
@@ -2150,11 +2164,11 @@ export default function AdminDashboard() {
                         </div>
 
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Class</label>
+                          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Class</label>
                           <select
                             value={tempClass}
                             onChange={(e) => setTempClass(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-bold outline-none cursor-pointer disabled:cursor-not-allowed"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 font-medium outline-none cursor-pointer focus:border-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={!tempDept}
                           >
                             <option value="">All Classes</option>
@@ -2175,9 +2189,9 @@ export default function AdminDashboard() {
                               setFromDeptFaculty(false);
                               setShowFilterPopover(false);
                             }}
-                            className="w-full py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg transition-all cursor-pointer text-center"
+                            className="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer text-center"
                           >
-                            Apply Filter
+                            Apply Filters
                           </button>
                         </div>
                       </div>
@@ -2194,11 +2208,11 @@ export default function AdminDashboard() {
                       setEditingFacultyDeptId("");
                       setAddingFaculty(true);
                     }}
-                    className="px-3 sm:px-4 py-2 sm:py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer whitespace-nowrap"
+                    className="h-9 px-3.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5"
                   >
-                    + Add Faculty
+                    <span>+ Add Faculty</span>
                   </button>
-                  <div className="text-xs font-bold text-slate-400 uppercase shrink-0 hidden sm:block">
+                  <div className="text-xs font-bold text-slate-400 tabular-nums uppercase shrink-0 hidden sm:block">
                     Total: {filteredAllFaculty.length}
                   </div>
                 </div>
@@ -2207,34 +2221,34 @@ export default function AdminDashboard() {
               {/* Faculty - Mobile Card View */}
               <div className="md:hidden space-y-3">
                 {loadingFaculties ? (
-                  <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-400 font-bold shadow-sm">Loading faculty profiles...</div>
+                  <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-400 font-medium text-xs">Loading faculty profiles...</div>
                 ) : filteredAllFaculty.length === 0 ? (
-                  <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-400 font-bold shadow-sm">No faculty members found.</div>
+                  <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-400 font-medium text-xs">No faculty members found.</div>
                 ) : (
                   filteredAllFaculty.map((fac) => (
-                    <div key={fac.id} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
+                    <div key={fac.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <h4 className="text-sm font-bold text-slate-800 truncate">{fac.name}</h4>
-                          <p className="text-[11px] font-mono text-slate-500 mt-0.5">{fac.id}</p>
+                          <h4 className="text-sm font-bold text-slate-900 truncate">{fac.name}</h4>
+                          <p className="text-xs font-mono text-slate-500 mt-0.5">{fac.id}</p>
                         </div>
                         <div className="flex flex-col items-end gap-1 shrink-0">
-                          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold">{fac.department}</span>
-                          <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold ${fac.role === "hod" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
-                            {(fac.role || "faculty").toUpperCase()}
+                          <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md text-[10px] font-semibold">{fac.department}</span>
+                          <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${fac.role === "hod" ? "bg-slate-900 text-white" : "bg-orange-50 text-orange-700 border border-orange-200/60"}`}>
+                            {fac.role || "faculty"}
                           </span>
                         </div>
                       </div>
-                      <div className="space-y-1.5 text-xs text-slate-500">
+                      <div className="space-y-1.5 text-xs text-slate-600">
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-400 font-bold w-14 shrink-0">Email</span>
-                          <span className="font-medium truncate">{fac.email}</span>
+                          <span className="text-slate-400 font-medium w-14 shrink-0">Email</span>
+                          <span className="font-medium truncate text-slate-800">{fac.email}</span>
                         </div>
                         <div className="flex items-start gap-2">
-                          <span className="text-slate-400 font-bold w-14 shrink-0">Classes</span>
+                          <span className="text-slate-400 font-medium w-14 shrink-0">Classes</span>
                           <div className="flex flex-wrap gap-1">
                             {(fac.classes || []).map((cls: string) => (
-                              <span key={cls} className="px-2 py-0.5 bg-slate-100 text-slate-650 rounded text-[10px] font-bold">{cls}</span>
+                              <span key={cls} className="px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-medium">{cls}</span>
                             ))}
                             {(fac.classes || []).length === 0 && <span className="text-xs text-slate-400 italic">None</span>}
                           </div>
@@ -2243,13 +2257,13 @@ export default function AdminDashboard() {
                       <div className="flex gap-2 pt-2 border-t border-slate-100">
                         <button
                           onClick={() => setEditingFaculty(fac)}
-                          className="flex-1 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-100 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
+                          className="flex-1 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleDeleteFaculty(fac.id)}
-                          className="flex-1 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
+                          className="flex-1 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/60 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center"
                         >
                           Delete
                         </button>
@@ -2260,66 +2274,66 @@ export default function AdminDashboard() {
               </div>
 
               {/* Faculty - Desktop Table View */}
-              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hidden md:block">
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs hidden md:block">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-400 uppercase">
-                        <th className="p-4 pl-6">Faculty ID</th>
-                        <th className="p-4">Name</th>
-                        <th className="p-4">Email</th>
-                        <th className="p-4">Department</th>
-                        <th className="p-4">Role</th>
-                        <th className="p-4">Assigned Classes</th>
-                        <th className="p-4 pr-6 text-right">Actions</th>
+                      <tr className="bg-slate-50/75 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th className="py-3 px-4 pl-6">Faculty ID</th>
+                        <th className="py-3 px-4">Name</th>
+                        <th className="py-3 px-4">Email</th>
+                        <th className="py-3 px-4">Department</th>
+                        <th className="py-3 px-4">Role</th>
+                        <th className="py-3 px-4">Assigned Classes</th>
+                        <th className="py-3 px-4 pr-6 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-600">
+                    <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
                       {loadingFaculties ? (
                         <tr>
-                          <td colSpan={7} className="text-center py-8 text-slate-400 font-bold">Loading faculty profiles...</td>
+                          <td colSpan={7} className="text-center py-10 text-slate-400 font-medium">Loading faculty profiles...</td>
                         </tr>
                       ) : filteredAllFaculty.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="text-center py-8 text-slate-400 font-bold">No faculty members found.</td>
+                          <td colSpan={7} className="text-center py-10 text-slate-400 font-medium">No faculty members found.</td>
                         </tr>
                       ) : (
                         filteredAllFaculty.map((fac) => (
-                          <tr key={fac.id} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="p-4 pl-6 font-mono text-xs text-slate-800">{fac.id}</td>
-                            <td className="p-4 text-slate-800 font-bold">{fac.name}</td>
-                            <td className="p-4 text-slate-500 font-medium">{fac.email}</td>
-                            <td className="p-4">{fac.department}</td>
-                            <td className="p-4">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${fac.role === "hod" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
-                                {(fac.role || "faculty").toUpperCase()}
+                          <tr key={fac.id} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="py-3 px-4 pl-6 font-mono text-slate-900 font-semibold">{fac.id}</td>
+                            <td className="py-3 px-4 font-bold text-slate-900">{fac.name}</td>
+                            <td className="py-3 px-4 text-slate-600 font-medium">{fac.email}</td>
+                            <td className="py-3 px-4 font-semibold text-slate-700">{fac.department}</td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${fac.role === "hod" ? "bg-slate-900 text-white" : "bg-orange-50 text-orange-700 border border-orange-200/60"}`}>
+                                {fac.role || "faculty"}
                               </span>
                             </td>
-                            <td className="p-4">
+                            <td className="py-3 px-4">
                               <div className="flex flex-wrap gap-1">
                                 {(fac.classes || []).map((cls: string) => (
-                                  <span key={cls} className="px-2 py-0.5 bg-slate-100 text-slate-650 rounded text-[10px] font-bold">
+                                  <span key={cls} className="px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-medium">
                                     {cls}
                                   </span>
                                 ))}
                                 {(fac.classes || []).length === 0 && <span className="text-xs text-slate-400 italic">None</span>}
                               </div>
                             </td>
-                            <td className="p-4 pr-6 text-right flex justify-end gap-2">
-                              <button
-                                onClick={() => {
-                                  setEditingFaculty(fac);
-                                }}
-                                className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleDeleteFaculty(fac.id)}
-                                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                              >
-                                Delete
-                              </button>
+                            <td className="py-3 px-4 pr-6 text-right">
+                              <div className="flex justify-end gap-1.5">
+                                <button
+                                  onClick={() => setEditingFaculty(fac)}
+                                  className="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-md text-xs font-semibold transition-all cursor-pointer"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteFaculty(fac.id)}
+                                  className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/60 rounded-md text-xs font-semibold transition-all cursor-pointer"
+                                >
+                                  Delete
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -2391,46 +2405,46 @@ export default function AdminDashboard() {
       {/* Overlay Student Profile Modal */}
       {selectedStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="p-6 border-b border-slate-100 bg-slate-50/20 flex items-start justify-between">
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex items-start justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  STUDENT PROFILE
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Student Profile
                 </span>
-                <h4 className="text-lg font-bold text-slate-800 mt-1">
+                <h4 className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
                   {selectedStudent.name}
                 </h4>
-                <p className="text-xs text-slate-450 font-mono mt-0.5 font-semibold">
+                <p className="text-xs text-slate-500 font-mono mt-0.5 font-medium">
                   ID: {selectedStudent.id}
                 </p>
               </div>
               <button
                 onClick={() => setSelectedStudent(null)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-250"
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-200 cursor-pointer"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Profile Metrics */}
-            <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-slate-100 bg-slate-50/30">
-              <div className="grid grid-cols-3 gap-2 lg:gap-4">
-                <div className="bg-white border border-slate-100 p-4 rounded-xl text-center shadow-xs">
-                  <span className="text-xs text-slate-400 font-bold block mb-1">PRESENT</span>
-                  <span className="text-lg font-black text-emerald-600">
+            <div className="px-5 sm:px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white border border-slate-200 p-3.5 rounded-lg text-center shadow-xs">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Present</span>
+                  <span className="text-lg sm:text-xl font-bold text-slate-900 tabular-nums">
                     {Math.round(studentAttendance[selectedStudent.id]?.P ?? 0)}%
                   </span>
                 </div>
-                <div className="bg-white border border-slate-100 p-4 rounded-xl text-center shadow-xs">
-                  <span className="text-xs text-slate-400 font-bold block mb-1">ABSENT</span>
-                  <span className="text-lg font-black text-rose-600">
+                <div className="bg-white border border-slate-200 p-3.5 rounded-lg text-center shadow-xs">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Absent</span>
+                  <span className="text-lg sm:text-xl font-bold text-rose-600 tabular-nums">
                     {Math.round(studentAttendance[selectedStudent.id]?.A ?? 0)}%
                   </span>
                 </div>
-                <div className="bg-white border border-slate-100 p-4 rounded-xl text-center shadow-xs">
-                  <span className="text-xs text-slate-400 font-bold block mb-1">ON-DUTY</span>
-                  <span className="text-lg font-black text-blue-600">
+                <div className="bg-white border border-slate-200 p-3.5 rounded-lg text-center shadow-xs">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">On-Duty</span>
+                  <span className="text-lg sm:text-xl font-bold text-orange-600 tabular-nums">
                     {Math.round(studentAttendance[selectedStudent.id]?.OD ?? 0)}%
                   </span>
                 </div>
@@ -2438,18 +2452,18 @@ export default function AdminDashboard() {
             </div>
 
             {/* Timeline List */}
-            <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
+            <div className="flex-1 overflow-y-auto p-5 sm:p-6 scrollbar-thin">
               <div className="flex items-center gap-2 mb-4">
-                <Clock className="h-4 w-4 text-orange-500" />
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  ATTENDANCE LOG (SEM {selectedSemester})
+                <Clock className="h-4 w-4 text-slate-400" />
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Attendance History (Semester {selectedSemester})
                 </span>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {getDetailedStudentLogs(selectedStudent.id).length === 0 ? (
-                  <div className="text-center py-12 text-xs text-slate-450 font-medium">
-                    No attendance logs stored for this semester.
+                  <div className="text-center py-12 text-xs text-slate-400 font-medium">
+                    No attendance records logged for this semester.
                   </div>
                 ) : (
                   getDetailedStudentLogs(selectedStudent.id).map((log, index) => {
@@ -2459,13 +2473,13 @@ export default function AdminDashboard() {
                     return (
                       <div
                         key={index}
-                        className="bg-slate-50 border border-slate-100/60 p-3.5 rounded-xl flex items-center justify-between shadow-xs bg-slate-50"
+                        className="bg-white border border-slate-200 p-3.5 rounded-lg flex items-center justify-between shadow-xs hover:border-slate-300 transition-colors"
                       >
                         <div>
-                          <div className="text-sm font-semibold text-slate-800">
+                          <div className="text-xs sm:text-sm font-semibold text-slate-900">
                             {log.subject}
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-slate-455 mt-1 font-semibold">
+                          <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-1 font-medium">
                             <Calendar className="h-3 w-3 text-slate-400" />
                             <span>{log.date}</span>
                             <span>•</span>
@@ -2474,12 +2488,12 @@ export default function AdminDashboard() {
                         </div>
                         <div>
                           <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold ${
+                            className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold ${
                               isPresent
-                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                ? "bg-slate-100 text-slate-800"
                                 : isOD
-                                ? "bg-blue-50 text-blue-600 border border-blue-100"
-                                : "bg-rose-50 text-rose-600 border border-rose-100"
+                                ? "bg-orange-50 text-orange-700 border border-orange-200/60"
+                                : "bg-rose-50 text-rose-700 border border-rose-200/60"
                             }`}
                           >
                             {log.status === "P" ? "Present" : log.status === "OD" ? "On-Duty" : "Absent"}
@@ -2498,48 +2512,48 @@ export default function AdminDashboard() {
       {/* Department Editor Modal */}
       {isDeptEditorOpen && editingDeptId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="p-6 border-b border-slate-100 bg-slate-50/20 flex items-start justify-between">
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex items-start justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   Department Settings
                 </span>
-                <h4 className="text-lg font-bold text-slate-800 mt-1">
+                <h4 className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
                   Department Editor
                 </h4>
-                <p className="text-xs text-slate-450 mt-0.5 font-semibold">
-                  Department ID: {editingDeptId}
+                <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                  Department ID: <span className="font-mono text-slate-700">{editingDeptId}</span>
                 </p>
               </div>
               <button
                 onClick={() => setIsDeptEditorOpen(false)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-250 cursor-pointer"
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-200 cursor-pointer"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Form */}
-            <div className="p-6 space-y-4">
+            <div className="p-5 sm:p-6 space-y-4">
               {/* Rename Section */}
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Rename Department</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Rename Department</label>
                 <input
                   type="text"
                   value={newDeptNameInput}
                   onChange={(e) => setNewDeptNameInput(e.target.value)}
-                  placeholder="e.g. Computer Science"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  placeholder="e.g. Computer Science & Engineering"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                 />
               </div>
 
-              <div className="pt-2">
+              <div className="pt-1">
                 <button
                   type="button"
                   onClick={() => handleRenameDept(editingDeptId, newDeptNameInput)}
                   disabled={savingDept}
-                  className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer text-center disabled:opacity-50"
+                  className="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer text-center disabled:opacity-50"
                 >
                   {savingDept ? "Saving..." : "Save Department Name"}
                 </button>
@@ -2547,14 +2561,14 @@ export default function AdminDashboard() {
 
               {/* Danger Zone Divider */}
               <div className="border-t border-slate-150 pt-4 mt-2">
-                <h5 className="text-xs font-extrabold text-rose-500 uppercase tracking-wider mb-1.5">Danger Zone</h5>
-                <p className="text-[10px] text-slate-450 mb-3 font-semibold leading-relaxed">
+                <h5 className="text-[11px] font-bold text-rose-600 uppercase tracking-wider mb-1">Danger Zone</h5>
+                <p className="text-[11px] text-slate-500 mb-3 font-normal leading-relaxed">
                   Permanently delete this department. All classes and student timetables associated with it will also be deleted.
                 </p>
                 <button
                   type="button"
                   onClick={() => handleDeleteDept(editingDeptId)}
-                  className="w-full py-2 bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white border border-rose-100 hover:border-rose-500 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
+                  className="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/60 text-xs font-semibold rounded-lg transition-all cursor-pointer text-center"
                 >
                   Delete Department
                 </button>
@@ -2567,49 +2581,49 @@ export default function AdminDashboard() {
       {/* Class Editor Modal */}
       {isClassEditorOpen && selectedClass && selectedDept && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="p-6 border-b border-slate-100 bg-slate-50/20 flex items-start justify-between">
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex items-start justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   Class Settings
                 </span>
-                <h4 className="text-lg font-bold text-slate-800 mt-1">
+                <h4 className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
                   Class Editor
                 </h4>
-                <p className="text-xs text-slate-450 mt-0.5 font-semibold">
-                  Department: {selectedDept.name}
+                <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                  Department: <span className="font-semibold text-slate-700">{selectedDept.name}</span>
                 </p>
               </div>
               <button
                 onClick={() => setIsClassEditorOpen(false)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-250 cursor-pointer"
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-200 cursor-pointer"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Form */}
-            <div className="p-6 space-y-4">
+            <div className="p-5 sm:p-6 space-y-4">
               {/* Rename Section */}
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Rename Class</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Rename Class</label>
                 <input
                   type="text"
                   value={newClassNameInput}
                   onChange={(e) => setNewClassNameInput(e.target.value)}
                   placeholder="e.g. SEC25CJ013"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                 />
               </div>
 
               {/* Semester Selection */}
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Current Semester</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Current Semester</label>
                 <select
                   value={newClassSemesterInput}
                   onChange={(e) => setNewClassSemesterInput(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500 cursor-pointer"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 cursor-pointer"
                 >
                   {["I", "II", "III", "IV", "V", "VI", "VII", "VIII"].map((sem) => (
                     <option key={sem} value={sem}>{sem}</option>
@@ -2617,12 +2631,12 @@ export default function AdminDashboard() {
                 </select>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-1">
                 <button
                   type="button"
                   onClick={() => handleSaveClassSettings(selectedDept.id, selectedClass, newClassNameInput, newClassSemesterInput)}
                   disabled={savingClass}
-                  className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer text-center disabled:opacity-50"
+                  className="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer text-center disabled:opacity-50"
                 >
                   {savingClass ? "Saving..." : "Save Class Settings"}
                 </button>
@@ -2630,14 +2644,14 @@ export default function AdminDashboard() {
 
               {/* Danger Zone Divider */}
               <div className="border-t border-slate-150 pt-4 mt-2">
-                <h5 className="text-xs font-extrabold text-rose-500 uppercase tracking-wider mb-1.5">Danger Zone</h5>
-                <p className="text-[10px] text-slate-450 mb-3 font-semibold leading-relaxed">
+                <h5 className="text-[11px] font-bold text-rose-600 uppercase tracking-wider mb-1">Danger Zone</h5>
+                <p className="text-[11px] text-slate-500 mb-3 font-normal leading-relaxed">
                   Permanently delete this class, its timetable settings, and all associated configurations. This action is irreversible.
                 </p>
                 <button
                   type="button"
                   onClick={() => handleDeleteClass(selectedDept.id, selectedClass)}
-                  className="w-full py-2 bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white border border-rose-100 hover:border-rose-500 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
+                  className="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/60 text-xs font-semibold rounded-lg transition-all cursor-pointer text-center"
                 >
                   Delete Class
                 </button>
@@ -2650,66 +2664,66 @@ export default function AdminDashboard() {
       {/* Edit Student Modal */}
       {editingStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="p-6 border-b border-slate-100 bg-slate-50/20 flex items-start justify-between">
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex items-start justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   Edit Student Profile
                 </span>
-                <h4 className="text-lg font-bold text-slate-800 mt-1">
+                <h4 className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
                   {editingStudent.name}
                 </h4>
-                <p className="text-xs text-slate-450 font-mono mt-0.5 font-semibold">
+                <p className="text-xs text-slate-500 font-mono mt-0.5 font-medium">
                   ID: {editingStudent.id}
                 </p>
               </div>
               <button
                 onClick={() => setEditingStudent(null)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-250 cursor-pointer"
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-200 cursor-pointer"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleUpdateStudent} className="p-6 space-y-4">
+            <form onSubmit={handleUpdateStudent} className="p-5 sm:p-6 space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Student ID / Roll No.</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Student ID / Roll No.</label>
                 <input
                   type="text"
                   value={editingStudent.id}
                   onChange={(e) => setEditingStudent({ ...editingStudent, id: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-mono font-bold"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Full Name</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Full Name</label>
                 <input
                   type="text"
                   value={editingStudent.name}
                   onChange={(e) => setEditingStudent({ ...editingStudent, name: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Email Address</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Email Address</label>
                 <input
                   type="email"
                   value={editingStudent.email}
                   onChange={(e) => setEditingStudent({ ...editingStudent, email: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Department</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Department</label>
                   <select
                     value={editingStudent.department}
                     onChange={(e) => {
@@ -2722,7 +2736,7 @@ export default function AdminDashboard() {
                         class: defaultClass,
                       });
                     }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900"
                     required
                   >
                     {departments.map((d) => (
@@ -2734,11 +2748,11 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Class</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Class</label>
                   <select
                     value={editingStudent.class}
                     onChange={(e) => setEditingStudent({ ...editingStudent, class: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900"
                     required
                   >
                     {departments
@@ -2752,24 +2766,24 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Mentor ID</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Mentor ID</label>
                   <input
                     type="text"
                     value={editingStudent.mentor_id || ""}
                     onChange={(e) => setEditingStudent({ ...editingStudent, mentor_id: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-mono"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                     placeholder="e.g. FAC123"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Semester</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Semester</label>
                   <select
                     value={editingStudent.semester || classCurrentSemester || "I"}
                     onChange={(e) => setEditingStudent({ ...editingStudent, semester: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500 cursor-not-allowed opacity-75"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:border-slate-900 cursor-not-allowed opacity-75"
                     disabled
                   >
                     {["I", "II", "III", "IV", "V", "VI", "VII", "VIII"].map((sem) => (
@@ -2779,31 +2793,31 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="flex justify-between items-center gap-3 pt-4 border-t border-slate-100">
+              <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={handleResetDeviceFaceId}
                   disabled={savingStudent}
-                  className="px-4 py-2 border border-red-200 text-red-500 hover:bg-red-50 text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-2 border border-rose-200/80 text-rose-600 hover:bg-rose-50 text-xs font-semibold rounded-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-center"
                 >
                   Reset Face & Device ID
                 </button>
-                <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setEditingStudent(null)}
-                  disabled={savingStudent}
-                  className="px-4 py-2 border border-slate-200 text-slate-500 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingStudent}
-                  className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {savingStudent ? "Saving..." : "Save Changes"}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingStudent(null)}
+                    disabled={savingStudent}
+                    className="flex-1 sm:flex-none px-3.5 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold rounded-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingStudent}
+                    className="flex-1 sm:flex-none px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {savingStudent ? "Saving..." : "Save Changes"}
+                  </button>
                 </div>
               </div>
             </form>
@@ -2814,30 +2828,30 @@ export default function AdminDashboard() {
       {/* Add Department Modal */}
       {isAddingDept && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="p-6 border-b border-slate-100 bg-slate-50/20 flex items-start justify-between">
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex items-start justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   Add New Department
                 </span>
-                <h4 className="text-lg font-bold text-slate-800 mt-1">
+                <h4 className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
                   New Department Details
                 </h4>
               </div>
               <button
                 onClick={() => setIsAddingDept(false)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-250 cursor-pointer"
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-200 cursor-pointer"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Form */}
             <form onSubmit={handleCreateDept} className="flex-1 flex flex-col min-h-0">
-              <div className="p-6 space-y-4 overflow-y-auto">
+              <div className="p-5 sm:p-6 space-y-4 overflow-y-auto">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                     Department Code/ID (e.g. CSE, ECE)
                   </label>
                   <input
@@ -2846,12 +2860,12 @@ export default function AdminDashboard() {
                     value={newDeptId}
                     onChange={(e) => setNewDeptId(e.target.value)}
                     placeholder="e.g. CSE"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-500 font-bold"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white uppercase"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                     Department Name
                   </label>
                   <input
@@ -2860,24 +2874,24 @@ export default function AdminDashboard() {
                     value={newDeptName}
                     onChange={(e) => setNewDeptName(e.target.value)}
                     placeholder="e.g. Computer Science & Engineering"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-500 font-bold"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                   />
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-3 shrink-0">
+              <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-2.5 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsAddingDept(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-500 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                  className="px-3.5 py-2 border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold rounded-lg transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingDept}
-                  className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer disabled:opacity-50"
                 >
                   {savingDept ? "Adding..." : "Add Department"}
                 </button>
@@ -2890,36 +2904,36 @@ export default function AdminDashboard() {
       {/* Add Class Modal */}
       {isAddingClass && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="p-6 border-b border-slate-100 bg-slate-50/20 flex items-start justify-between">
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex items-start justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   Add New Class
                 </span>
-                <h4 className="text-lg font-bold text-slate-800 mt-1">
+                <h4 className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
                   New Class Details
                 </h4>
               </div>
               <button
                 onClick={() => setIsAddingClass(false)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-250 cursor-pointer"
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-200 cursor-pointer"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Form */}
             <form onSubmit={handleCreateClass} className="flex-1 flex flex-col min-h-0">
-              <div className="p-6 space-y-4 overflow-y-auto">
+              <div className="p-5 sm:p-6 space-y-4 overflow-y-auto">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                     Select Department
                   </label>
                   <select
                     value={targetDeptId}
                     onChange={(e) => setTargetDeptId(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-500 font-bold cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 cursor-pointer"
                   >
                     {departments.map((d) => (
                       <option key={d.id} value={d.id}>
@@ -2930,7 +2944,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                     Class Name/ID
                   </label>
                   <input
@@ -2939,24 +2953,24 @@ export default function AdminDashboard() {
                     value={newClassName}
                     onChange={(e) => setNewClassName(e.target.value)}
                     placeholder="e.g. CSE-A, CSE-B"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-500 font-bold"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                   />
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-3 shrink-0">
+              <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-2.5 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsAddingClass(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-500 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                  className="px-3.5 py-2 border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold rounded-lg transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingClass}
-                  className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer disabled:opacity-50"
                 >
                   {savingClass ? "Adding..." : "Add Class"}
                 </button>
@@ -2969,66 +2983,66 @@ export default function AdminDashboard() {
       {/* Add Student Modal */}
       {isAddingStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="p-6 border-b border-slate-100 bg-slate-50/20 flex items-start justify-between">
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex items-start justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   Add New Student
                 </span>
-                <h4 className="text-lg font-bold text-slate-800 mt-1">
+                <h4 className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
                   New Student Profile
                 </h4>
               </div>
               <button
                 onClick={() => setIsAddingStudent(false)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-250 cursor-pointer"
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-200 cursor-pointer"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleCreateStudent} className="p-6 space-y-4">
+            <form onSubmit={handleCreateStudent} className="p-5 sm:p-6 space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Student ID / Roll No. *</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Student ID / Roll No. *</label>
                 <input
                   type="text"
                   placeholder="e.g. 21CS001"
                   value={newStudent.id || ""}
                   onChange={(e) => setNewStudent({ ...newStudent, id: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-mono font-bold"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Full Name *</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Full Name *</label>
                 <input
                   type="text"
                   placeholder="e.g. John Doe"
                   value={newStudent.name || ""}
                   onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Email Address *</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Email Address *</label>
                 <input
                   type="email"
                   placeholder="e.g. john.doe@college.edu"
                   value={newStudent.email || ""}
                   onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Department *</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Department *</label>
                   <select
                     value={newStudent.department || ""}
                     onChange={(e) => {
@@ -3041,7 +3055,7 @@ export default function AdminDashboard() {
                         class: defaultClass,
                       });
                     }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500 cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 cursor-pointer"
                     required
                   >
                     {departments.map((d) => (
@@ -3053,11 +3067,11 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Class *</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Class *</label>
                   <select
                     value={newStudent.class || ""}
                     onChange={(e) => setNewStudent({ ...newStudent, class: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500 cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 cursor-pointer"
                     required
                   >
                     {departments
@@ -3071,24 +3085,24 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Mentor ID</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Mentor ID</label>
                   <input
                     type="text"
                     placeholder="e.g. FAC123"
                     value={newStudent.mentor_id || ""}
                     onChange={(e) => setNewStudent({ ...newStudent, mentor_id: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-mono"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Semester *</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Semester *</label>
                   <select
                     value={newStudent.semester || classCurrentSemester || "I"}
                     onChange={(e) => setNewStudent({ ...newStudent, semester: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500 cursor-not-allowed opacity-75"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:border-slate-900 cursor-not-allowed opacity-75"
                     disabled
                   >
                     {["I", "II", "III", "IV", "V", "VI", "VII", "VIII"].map((sem) => (
@@ -3098,19 +3112,19 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsAddingStudent(false)}
                   disabled={savingStudent}
-                  className="px-4 py-2 border border-slate-200 text-slate-500 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50"
+                  className="px-3.5 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold rounded-lg transition-all cursor-pointer disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingStudent}
-                  className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer disabled:opacity-50"
                 >
                   {savingStudent ? "Adding..." : "Add Student"}
                 </button>
@@ -3123,22 +3137,22 @@ export default function AdminDashboard() {
       {/* Add Faculty Modal */}
       {addingFaculty && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="p-6 border-b border-slate-100 bg-slate-50/20 flex items-start justify-between">
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex items-start justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   Add New Faculty
                 </span>
-                <h4 className="text-lg font-bold text-slate-800 mt-1">
+                <h4 className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
                   New Faculty Profile
                 </h4>
               </div>
               <button
                 onClick={() => setAddingFaculty(false)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-250 cursor-pointer"
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-200 cursor-pointer"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
@@ -3146,70 +3160,63 @@ export default function AdminDashboard() {
             <form onSubmit={async (e) => {
               await handleAddFaculty(e);
               setAddingFaculty(false);
-            }} className="p-6 space-y-4">
+            }} className="p-5 sm:p-6 space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Faculty ID *</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Faculty ID *</label>
                 <input
                   type="text"
                   placeholder="e.g. FAC001"
                   value={facultyId}
                   onChange={(e) => setFacultyId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-mono font-bold"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Full Name *</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Full Name *</label>
                 <input
                   type="text"
                   placeholder="e.g. Dr. Jane Smith"
                   value={facultyName}
                   onChange={(e) => setFacultyName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Email Address *</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Email Address *</label>
                 <input
                   type="email"
                   placeholder="e.g. jane.smith@college.edu"
                   value={facultyEmail}
                   onChange={(e) => setFacultyEmail(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Password</label>
-                <p className="text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
-                  Passwords are managed via Firebase Auth. The default password &ldquo;faculty123&rdquo; is set during user provisioning.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Role *</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Role *</label>
                 <select
                   value={facultyRole}
                   onChange={(e) => setFacultyRole(e.target.value as "faculty" | "hod")}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900"
                   required
                 >
                   <option value="faculty">Faculty</option>
-                  <option value="hod">HOD</option>
+                  <option value="hod">Head of Department (HOD)</option>
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Department *</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Department *</label>
                   <select
                     value={editingFacultyDeptId}
                     onChange={(e) => setEditingFacultyDeptId(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900"
                     required
                   >
                     <option value="">-- Select Dept --</option>
@@ -3222,29 +3229,29 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Assigned Classes</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Assigned Classes</label>
                   <input
                     type="text"
                     placeholder="e.g. CSE-A, CSE-B"
                     value={facultyClassesInput}
                     onChange={(e) => setFacultyClassesInput(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                   />
                   <p className="text-[10px] text-slate-400 mt-1">Comma-separated list</p>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setAddingFaculty(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-500 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                  className="px-3.5 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold rounded-lg transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer"
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer"
                 >
                   Add Faculty
                 </button>
@@ -3257,79 +3264,72 @@ export default function AdminDashboard() {
       {/* Edit Faculty Modal */}
       {editingFaculty && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="p-6 border-b border-slate-100 bg-slate-50/20 flex items-start justify-between">
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex items-start justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   Edit Faculty Profile
                 </span>
-                <h4 className="text-lg font-bold text-slate-800 mt-1">
+                <h4 className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
                   {editingFaculty.name}
                 </h4>
-                <p className="text-xs text-slate-450 font-mono mt-0.5 font-semibold">
+                <p className="text-xs text-slate-500 font-mono mt-0.5 font-medium">
                   ID: {editingFaculty.id}
                 </p>
               </div>
               <button
                 onClick={() => setEditingFaculty(null)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-250 cursor-pointer"
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-200 cursor-pointer"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleUpdateFaculty} className="p-6 space-y-4">
+            <form onSubmit={handleUpdateFaculty} className="p-5 sm:p-6 space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Full Name *</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Full Name *</label>
                 <input
                   type="text"
                   value={editingFaculty.name}
                   onChange={(e) => setEditingFaculty({ ...editingFaculty, name: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Email Address *</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Email Address *</label>
                 <input
                   type="email"
                   value={editingFaculty.email}
                   onChange={(e) => setEditingFaculty({ ...editingFaculty, email: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Password</label>
-                <p className="text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
-                  To reset a password, use the Firebase Console or a Cloud Function. Passwords are not stored in Firestore.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Role *</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Role *</label>
                 <select
                   value={editingFaculty.role || "faculty"}
                   onChange={(e) => setEditingFaculty({ ...editingFaculty, role: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900"
                   required
                 >
                   <option value="faculty">Faculty</option>
-                  <option value="hod">HOD</option>
+                  <option value="hod">Head of Department (HOD)</option>
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Department *</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Department *</label>
                   <select
                     value={editingFaculty.department}
                     onChange={(e) => setEditingFaculty({ ...editingFaculty, department: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-orange-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900"
                     required
                   >
                     {departments.map((d) => (
@@ -3341,7 +3341,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Assigned Classes</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Assigned Classes</label>
                   <input
                     type="text"
                     placeholder="e.g. CSE-A, CSE-B"
@@ -3350,23 +3350,23 @@ export default function AdminDashboard() {
                       const arr = e.target.value.split(",").map(c => c.trim()).filter(c => c.length > 0);
                       setEditingFaculty({ ...editingFaculty, classes: arr });
                     }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 focus:bg-white"
                   />
                   <p className="text-[10px] text-slate-400 mt-1">Comma-separated list</p>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setEditingFaculty(null)}
-                  className="px-4 py-2 border border-slate-200 text-slate-500 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                  className="px-3.5 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold rounded-lg transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer"
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer"
                 >
                   Save Changes
                 </button>
@@ -3378,28 +3378,28 @@ export default function AdminDashboard() {
 
       {/* Custom Popup Modal */}
       {popupConfig && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-sm p-6 text-center animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-xl w-full max-w-sm p-6 text-center animate-in zoom-in-95 duration-200">
             {popupConfig.type === "success" && (
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-emerald-50 border border-emerald-100 mb-4">
-                <CheckCircle className="h-6 w-6 text-emerald-600" />
+              <div className="mx-auto flex items-center justify-center h-11 w-11 rounded-full bg-slate-100 border border-slate-200 mb-3.5">
+                <CheckCircle className="h-5 w-5 text-slate-900" />
               </div>
             )}
             {popupConfig.type === "error" && (
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-rose-50 border border-rose-100 mb-4">
-                <XCircle className="h-6 w-6 text-rose-600" />
+              <div className="mx-auto flex items-center justify-center h-11 w-11 rounded-full bg-rose-50 border border-rose-100 mb-3.5">
+                <XCircle className="h-5 w-5 text-rose-600" />
               </div>
             )}
             {popupConfig.type === "warning" && (
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-amber-50 border border-amber-100 mb-4">
-                <AlertTriangle className="h-6 w-6 text-amber-600" />
+              <div className="mx-auto flex items-center justify-center h-11 w-11 rounded-full bg-orange-50 border border-orange-200 mb-3.5">
+                <AlertTriangle className="h-5 w-5 text-orange-600" />
               </div>
             )}
-            <h3 className="text-base font-extrabold text-slate-800">{popupConfig.title}</h3>
-            <p className="text-xs text-slate-500 font-semibold mt-2">{popupConfig.message}</p>
+            <h3 className="text-sm font-bold text-slate-900">{popupConfig.title}</h3>
+            <p className="text-xs text-slate-500 font-medium mt-1.5 leading-relaxed">{popupConfig.message}</p>
             <button
               onClick={() => setPopupConfig(null)}
-              className="mt-5 w-full py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer"
+              className="mt-5 w-full py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer"
             >
               Okay
             </button>
@@ -3409,17 +3409,17 @@ export default function AdminDashboard() {
 
       {/* Custom Logout Confirmation Modal */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-sm p-6 text-center animate-in zoom-in-95 duration-200">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-rose-50 border border-rose-100 mb-4">
-              <LogOut className="h-6 w-6 text-rose-500" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-xl w-full max-w-sm p-6 text-center animate-in zoom-in-95 duration-200">
+            <div className="mx-auto flex items-center justify-center h-11 w-11 rounded-full bg-rose-50 border border-rose-100 mb-3.5">
+              <LogOut className="h-5 w-5 text-rose-600" />
             </div>
-            <h3 className="text-base font-extrabold text-slate-800">Confirm Logout</h3>
-            <p className="text-xs text-slate-500 font-semibold mt-2">Are you sure you want to log out of the admin panel?</p>
-            <div className="mt-5 flex gap-3">
+            <h3 className="text-sm font-bold text-slate-900">Confirm Sign Out</h3>
+            <p className="text-xs text-slate-500 font-medium mt-1.5 leading-relaxed">Are you sure you want to end your current session?</p>
+            <div className="mt-5 flex gap-2.5">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
-                className="w-1/2 py-2 border border-slate-200 text-slate-550 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                className="w-1/2 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold rounded-lg transition-all cursor-pointer"
               >
                 Cancel
               </button>
@@ -3428,9 +3428,9 @@ export default function AdminDashboard() {
                   setShowLogoutConfirm(false);
                   handleLogout();
                 }}
-                className="w-1/2 py-2 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-xl shadow-md shadow-rose-500/10 transition-all cursor-pointer"
+                className="w-1/2 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer"
               >
-                Logout
+                Sign Out
               </button>
             </div>
           </div>
@@ -3439,17 +3439,17 @@ export default function AdminDashboard() {
 
       {/* Generic Confirm Dialog Modal */}
       {confirmConfig && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-sm p-6 text-center animate-in zoom-in-95 duration-200">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-amber-50 border border-amber-100 mb-4">
-              <AlertTriangle className="h-6 w-6 text-amber-500" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-xl w-full max-w-sm p-6 text-center animate-in zoom-in-95 duration-200">
+            <div className="mx-auto flex items-center justify-center h-11 w-11 rounded-full bg-orange-50 border border-orange-200 mb-3.5">
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
             </div>
-            <h3 className="text-base font-extrabold text-slate-800">{confirmConfig.title}</h3>
-            <p className="text-xs text-slate-500 font-semibold mt-2">{confirmConfig.message}</p>
-            <div className="mt-5 flex gap-3">
+            <h3 className="text-sm font-bold text-slate-900">{confirmConfig.title}</h3>
+            <p className="text-xs text-slate-500 font-medium mt-1.5 leading-relaxed">{confirmConfig.message}</p>
+            <div className="mt-5 flex gap-2.5">
               <button
                 onClick={() => setConfirmConfig(null)}
-                className="w-1/2 py-2 border border-slate-200 text-slate-550 hover:bg-slate-50 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                className="w-1/2 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold rounded-lg transition-all cursor-pointer"
               >
                 Cancel
               </button>
@@ -3458,7 +3458,7 @@ export default function AdminDashboard() {
                   setConfirmConfig(null);
                   confirmConfig.onConfirm();
                 }}
-                className="w-1/2 py-2 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-xl shadow-md shadow-rose-500/10 transition-all cursor-pointer"
+                className="w-1/2 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer"
               >
                 Confirm
               </button>

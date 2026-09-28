@@ -116,107 +116,111 @@ export default function AttendanceSheetView({
     <div className="space-y-6 animate-fade-in">
       {/* Info cards */}
       {selectedClass && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5 sm:gap-3 lg:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {/* Card 1: Total Students */}
-          <div className="bg-white border border-slate-200/85 p-2 sm:p-3.5 lg:p-4 rounded-xl flex items-center justify-between shadow-xs">
-            <div>
-              <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                Total Students
-              </p>
-              <h3 className="text-xs sm:text-lg lg:text-xl font-black text-slate-800 mt-0.5">
-                {loadingStudents ? "..." : stats.totalStudents}
-              </h3>
+          <div className="bg-white border border-slate-200/80 p-3 sm:p-4 rounded-xl shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                Enrolled
+              </span>
+              <Users className="h-4 w-4 text-slate-400" />
             </div>
-            <div className="p-1 sm:p-2.5 bg-blue-50 text-blue-500 rounded-lg border border-blue-100 shrink-0">
-              <Users className="h-3.5 w-3.5 sm:h-5 w-5" />
+            <div className="mt-2">
+              <span className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">
+                {loadingStudents ? "..." : stats.totalStudents}
+              </span>
+              <span className="text-[11px] text-slate-400 block mt-0.5">Students registered</span>
             </div>
           </div>
 
           {/* Card 2: Avg. Attendance */}
-          <div className="bg-white border border-slate-200/85 p-2 sm:p-3.5 lg:p-4 rounded-xl flex items-center justify-between shadow-xs">
-            <div>
-              <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                Avg. Attendance
-              </p>
-              <h3 className="text-xs sm:text-lg lg:text-xl font-black mt-0.5 bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
-                {loadingAttendance ? "..." : `${stats.avgPresent}%`}
-              </h3>
+          <div className="bg-white border border-slate-200/80 p-3 sm:p-4 rounded-xl shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                Average Present
+              </span>
+              <CheckCircle className="h-4 w-4 text-slate-900" />
             </div>
-            <div className="p-1 sm:p-2.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100 shrink-0">
-              <CheckCircle className="h-3.5 w-3.5 sm:h-5 w-5" />
+            <div className="mt-2">
+              <span className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">
+                {loadingAttendance ? "..." : `${stats.avgPresent}%`}
+              </span>
+              <span className="text-[11px] text-slate-400 block mt-0.5">Semester average</span>
             </div>
           </div>
 
           {/* Card 3: Low Attendance Alert */}
-          <div className="bg-white border border-slate-200/85 p-2 sm:p-3.5 lg:p-4 rounded-xl flex items-center justify-between shadow-xs">
-            <div>
-              <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                Low Attendance
-              </p>
-              <h3 className="text-xs sm:text-lg lg:text-xl font-black text-rose-500 mt-0.5">
+          <div className="bg-white border border-slate-200/80 p-3 sm:p-4 rounded-xl shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                Defaulters (&lt;75%)
+              </span>
+              <XCircle className="h-4 w-4 text-rose-600" />
+            </div>
+            <div className="mt-2">
+              <span className="text-xl sm:text-2xl font-semibold tracking-tight text-rose-700 tabular-nums">
                 {loadingAttendance ? "..." : stats.attendanceWarningCount}
-              </h3>
-            </div>
-            <div className="p-1 sm:p-2.5 bg-rose-50 text-rose-500 rounded-lg border border-rose-100 shrink-0">
-              <XCircle className="h-3.5 w-3.5 sm:h-5 w-5" />
+              </span>
+              <span className="text-[11px] text-slate-400 block mt-0.5">Action required</span>
             </div>
           </div>
 
-
-          {/* Card 5: Manage Timetable */}
-          <div 
+          {/* Card 4: Manage Timetable */}
+          <button 
             onClick={onViewTimetable}
-            className="bg-white border border-slate-200/85 p-2 sm:p-3.5 lg:p-4 rounded-xl flex items-center justify-between shadow-xs cursor-pointer hover:border-amber-400 hover:shadow-sm transition-all group"
+            className="text-left bg-white border border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/40 p-3 sm:p-4 rounded-xl shadow-2xs transition-colors cursor-pointer group"
           >
-            <div>
-              <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider group-hover:text-amber-500 transition-colors">
-                Class Timetable
-              </p>
-              <h3 className="text-[9px] sm:text-xs font-bold text-slate-600 mt-0.5 group-hover:text-amber-600 transition-colors">
-                Manage
-              </h3>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                Class Schedule
+              </span>
+              <Calendar className="h-4 w-4 text-slate-400 group-hover:text-slate-700 transition-colors" />
             </div>
-            <div className="p-1 sm:p-2.5 bg-amber-50 text-amber-500 rounded-lg border border-amber-100 group-hover:bg-amber-500 group-hover:text-white transition-all shrink-0">
-              <Calendar className="h-3.5 w-3.5 sm:h-5 w-5" />
+            <div className="mt-2">
+              <span className="text-sm font-semibold text-slate-900 block">
+                Timetable Grid
+              </span>
+              <span className="text-[11px] text-slate-400 block mt-0.5">Open class schedule</span>
             </div>
-          </div>
+          </button>
 
-          {/* Card 6: Class Settings */}
-          <div 
+          {/* Card 5: Class Settings */}
+          <button 
             onClick={onEditClass}
-            className="bg-white border border-slate-200/85 p-2 sm:p-3.5 lg:p-4 rounded-xl flex items-center justify-between shadow-xs cursor-pointer hover:border-orange-400 hover:shadow-sm transition-all group"
+            className="text-left bg-white border border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/40 p-3 sm:p-4 rounded-xl shadow-2xs transition-colors cursor-pointer group col-span-2 sm:col-span-1"
           >
-            <div>
-              <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider group-hover:text-orange-500 transition-colors">
-                Class Settings
-              </p>
-              <h3 className="text-[9px] sm:text-xs font-bold text-slate-600 mt-0.5 group-hover:text-orange-600 transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                Settings
+              </span>
+              <Layers className="h-4 w-4 text-slate-400 group-hover:text-slate-700 transition-colors" />
+            </div>
+            <div className="mt-2">
+              <span className="text-sm font-semibold text-slate-900 block">
                 Class Editor
-              </h3>
+              </span>
+              <span className="text-[11px] text-slate-400 block mt-0.5">Rename or remove class</span>
             </div>
-            <div className="p-1 sm:p-2.5 bg-orange-50 text-orange-500 rounded-lg border border-orange-100 group-hover:bg-orange-500 group-hover:text-white transition-all shrink-0">
-              <Layers className="h-3.5 w-3.5 sm:h-5 w-5" />
-            </div>
-          </div>
+          </button>
         </div>
       )}
 
       {/* Main Grid: Student Attendance List */}
       {selectedClass ? (
-        <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden flex flex-col shadow-sm">
-          <div className="p-4 lg:p-6 border-b border-slate-100 flex flex-col gap-3 lg:flex-row lg:gap-4 items-stretch lg:items-center justify-between bg-slate-50/30">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 w-full lg:w-auto">
-              <div className="relative w-full sm:w-56 lg:w-64">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+        <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden flex flex-col shadow-2xs">
+          <div className="p-3.5 sm:p-4 border-b border-slate-100 flex flex-col gap-3 lg:flex-row lg:gap-4 items-stretch lg:items-center justify-between bg-slate-50/30">
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3 w-full lg:w-auto flex-wrap">
+              <div className="relative w-full sm:w-56">
+                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search students..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value.toLowerCase())}
-                  className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-slate-400"
+                  className="w-full bg-white border border-slate-200 rounded-lg pl-8.5 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-slate-800 transition-colors"
                 />
               </div>
-              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80 items-center">
+              <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200/80 items-center">
                 <button
                   onClick={() => {
                     setActiveTab("overview");
@@ -225,13 +229,13 @@ export default function AttendanceSheetView({
                     setToDate("");
                     setAppliedDates(null);
                   }}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
                     activeTab === "overview"
-                      ? "bg-white text-orange-600 shadow-sm"
+                      ? "bg-white text-slate-900 shadow-2xs font-semibold"
                       : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
-                  Semester Stats
+                  Semester Overview
                 </button>
                 <button
                   onClick={() => {
@@ -241,9 +245,9 @@ export default function AttendanceSheetView({
                     setToDate("");
                     setAppliedDates(null);
                   }}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
                     activeTab === "daily"
-                      ? "bg-white text-orange-600 shadow-sm"
+                      ? "bg-white text-slate-900 shadow-2xs font-semibold"
                       : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
@@ -280,24 +284,24 @@ export default function AttendanceSheetView({
                     onChange={(e) => setFromDate(e.target.value)}
                     className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] text-slate-700 font-bold outline-none cursor-pointer focus:border-slate-300 w-[110px]"
                   />
-                  <span className="text-slate-400 font-bold text-[9px]">TO</span>
+                  <span className="text-[11px] font-medium text-slate-500 uppercase">To</span>
                   <input
                     type="date"
                     value={toDate}
                     onChange={(e) => setToDate(e.target.value)}
-                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] text-slate-700 font-bold outline-none cursor-pointer focus:border-slate-300 w-[110px]"
+                    className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-medium outline-none cursor-pointer focus:border-slate-800 w-[120px]"
                   />
                   <button
                     onClick={() => setAppliedDates({ from: fromDate, to: toDate })}
                     disabled={!fromDate || !toDate}
-                    className="ml-1 px-2.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-bold shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="ml-1 px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-medium shadow-2xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    OK
+                    Apply
                   </button>
                 </div>
               ) : activeTab === "daily" ? (
-                <div className="flex items-center gap-1 animate-in slide-in-from-left-2">
-                  <span className="text-xs font-bold text-slate-400 uppercase">Date</span>
+                <div className="flex items-center gap-1.5 animate-in slide-in-from-left-2">
+                  <span className="text-xs font-medium text-slate-500">Date:</span>
                   <input
                     type="date"
                     value={selectedDate && selectedDate.includes("-") ? `${selectedDate.split("-")[2]}-${selectedDate.split("-")[1]}-${selectedDate.split("-")[0]}` : ""}
@@ -310,17 +314,17 @@ export default function AttendanceSheetView({
                       const [yyyy, mm, dd] = val.split("-");
                       setSelectedDate(`${dd}-${mm}-${yyyy}`);
                     }}
-                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] text-slate-700 font-bold outline-none cursor-pointer focus:border-slate-300 w-[120px]"
+                    className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-medium outline-none cursor-pointer focus:border-slate-800 w-[125px]"
                   />
                 </div>
               ) : null}
 
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-400 uppercase">Semester</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-slate-500">Semester:</span>
                 <select
                   value={selectedSemester}
                   onChange={(e) => setSelectedSemester(e.target.value)}
-                  className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 outline-none focus:border-slate-400"
+                  className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-800 outline-none focus:border-slate-800 cursor-pointer"
                 >
                   {["I", "II", "III", "IV", "V", "VI", "VII", "VIII"].map((sem) => (
                     <option key={sem} value={sem}>{sem}</option>
@@ -328,6 +332,7 @@ export default function AttendanceSheetView({
                 </select>
               </div>
             </div>
+
             <div className="flex items-center justify-between gap-3 w-full lg:w-auto shrink-0">
               <button
                 onClick={() => handleDownloadExcel({ 
@@ -335,27 +340,25 @@ export default function AttendanceSheetView({
                   fromDate: appliedDates?.from, 
                   toDate: appliedDates?.to 
                 })}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/10 hover:shadow-lg transition-all border border-emerald-500 hover:border-emerald-600 cursor-pointer"
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-medium shadow-2xs transition-colors cursor-pointer"
               >
-                <Download className="h-4 w-4" />
-                Export Excel
+                <Download className="h-3.5 w-3.5 text-white" />
+                <span>Export Report</span>
               </button>
-              <div className="text-xs text-slate-400 font-bold">
-                Showing {filteredStudents.length} of {students.length} students
+              <div className="text-xs text-slate-400 font-medium">
+                {filteredStudents.length} of {students.length} students
               </div>
             </div>
           </div>
 
-
-
           {loadingStudents ? (
-            <div className="p-12 text-center text-slate-400 font-medium">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4" />
-              Loading student records...
+            <div className="p-12 text-center text-slate-400 text-xs font-medium">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-slate-200 border-t-slate-800 mx-auto mb-2" />
+              Loading student roster...
             </div>
           ) : filteredStudents.length === 0 ? (
-            <div className="p-12 text-center text-slate-400 font-medium">
-              No students found.
+            <div className="p-12 text-center text-slate-400 text-xs font-medium">
+              No students found for this class.
             </div>
           ) : (
             <div className="overflow-x-auto sm:block">
@@ -371,28 +374,28 @@ export default function AttendanceSheetView({
                         <div key={student.id} className="p-4 space-y-3">
                           <div className="flex items-center justify-between">
                             <div>
-                              <h4 className="font-bold text-slate-800 text-sm">{student.name}</h4>
-                              <span className="font-mono text-[10px] font-bold text-slate-400">{student.id}</span>
+                              <h4 className="font-semibold text-slate-900 text-xs">{student.name}</h4>
+                              <span className="font-mono text-[10px] text-slate-500">{student.id}</span>
                             </div>
                             <button onClick={() => {
                               setEditingStudent(student);
                               setOriginalStudentId(student.id);
-                            }} className="px-3 py-1 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-650 hover:border-orange-400 text-xs font-bold rounded-lg border border-slate-200/80 transition-all cursor-pointer">
+                            }} className="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-md border border-slate-200 transition-colors cursor-pointer shadow-2xs">
                               Edit
                             </button>
                           </div>
-                          <div className="grid grid-cols-3 gap-2 text-center bg-slate-50/50 p-2 rounded-xl border border-slate-100">
+                          <div className="grid grid-cols-3 gap-2 text-center bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                             <div>
-                              <span className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Present</span>
-                              <span className="text-xs font-black text-emerald-600">{p}%</span>
+                              <span className="block text-[10px] font-medium text-slate-400 uppercase tracking-wider">Present</span>
+                              <span className="text-xs font-semibold text-slate-900 tabular-nums">{p}%</span>
                             </div>
                             <div>
-                              <span className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">OD</span>
-                              <span className="text-xs font-black text-blue-600">{od}%</span>
+                              <span className="block text-[10px] font-medium text-slate-400 uppercase tracking-wider">OD</span>
+                              <span className="text-xs font-semibold text-slate-700 tabular-nums">{od}%</span>
                             </div>
                             <div>
-                              <span className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Absent</span>
-                              <span className="text-xs font-black text-rose-500">{a}%</span>
+                              <span className="block text-[10px] font-medium text-slate-400 uppercase tracking-wider">Absent</span>
+                              <span className="text-xs font-semibold text-rose-700 tabular-nums">{a}%</span>
                             </div>
                           </div>
                         </div>
@@ -403,43 +406,43 @@ export default function AttendanceSheetView({
                   {/* Desktop Table View */}
                   <table className="hidden sm:table w-full border-collapse text-left">
                     <thead>
-                      <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider bg-slate-50/50 select-none">
-                        <th onClick={() => handleSort("id")} className="p-4 pl-6 cursor-pointer hover:text-slate-700 transition-colors">
+                      <tr className="border-b border-slate-100 text-slate-400 text-[11px] font-medium uppercase tracking-wider bg-slate-50/40 select-none">
+                        <th onClick={() => handleSort("id")} className="px-5 py-3 cursor-pointer hover:text-slate-700 transition-colors">
                           <span className="inline-flex items-center">ID {renderSortIndicator("id")}</span>
                         </th>
-                        <th onClick={() => handleSort("name")} className="p-4 cursor-pointer hover:text-slate-700 transition-colors">
-                          <span className="inline-flex items-center">Name {renderSortIndicator("name")}</span>
+                        <th onClick={() => handleSort("name")} className="px-5 py-3 cursor-pointer hover:text-slate-700 transition-colors">
+                          <span className="inline-flex items-center">Student Name {renderSortIndicator("name")}</span>
                         </th>
-                        <th onClick={() => handleSort("present")} className="p-4 text-center cursor-pointer hover:text-slate-700 transition-colors">
+                        <th onClick={() => handleSort("present")} className="px-5 py-3 text-center cursor-pointer hover:text-slate-700 transition-colors">
                           <span className="inline-flex items-center justify-center w-full">Present % {renderSortIndicator("present")}</span>
                         </th>
-                        <th onClick={() => handleSort("od")} className="p-4 text-center cursor-pointer hover:text-slate-700 transition-colors">
+                        <th onClick={() => handleSort("od")} className="px-5 py-3 text-center cursor-pointer hover:text-slate-700 transition-colors">
                           <span className="inline-flex items-center justify-center w-full">OD % {renderSortIndicator("od")}</span>
                         </th>
-                        <th onClick={() => handleSort("absent")} className="p-4 text-center cursor-pointer hover:text-slate-700 transition-colors">
+                        <th onClick={() => handleSort("absent")} className="px-5 py-3 text-center cursor-pointer hover:text-slate-700 transition-colors">
                           <span className="inline-flex items-center justify-center w-full">Absent % {renderSortIndicator("absent")}</span>
                         </th>
-                        <th className="p-4 pr-6 text-right">Action</th>
+                        <th className="px-5 py-3 pr-6 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 text-xs">
                       {filteredStudents.map((student) => {
                         const p = Math.round(studentAttendance[student.id]?.P ?? 0);
                         const a = Math.round(studentAttendance[student.id]?.A ?? 0);
                         const od = Math.round(studentAttendance[student.id]?.OD ?? 0);
                         return (
-                          <tr key={student.id} className={`group hover:bg-slate-50/40 transition-colors ${selectedStudent?.id === student.id ? "bg-orange-50/20" : ""}`}>
-                            <td className="p-4 pl-6 font-mono text-xs font-semibold text-slate-500">{student.id}</td>
-                            <td className="p-4 font-bold text-slate-800 group-hover:text-orange-600 transition-colors">{student.name}</td>
-                            <td className="p-4 text-center font-bold text-emerald-600">{p}%</td>
-                            <td className="p-4 text-center font-bold text-blue-600">{od}%</td>
-                            <td className="p-4 text-center font-bold text-rose-600">{a}%</td>
-                            <td className="p-4 pr-6 text-right">
+                          <tr key={student.id} className={`group hover:bg-slate-50/60 transition-colors ${selectedStudent?.id === student.id ? "bg-slate-50" : ""}`}>
+                            <td className="px-5 py-3 font-mono font-medium text-slate-600">{student.id}</td>
+                            <td className="px-5 py-3 font-medium text-slate-900">{student.name}</td>
+                            <td className="px-5 py-3 text-center font-bold text-slate-900 tabular-nums">{p}%</td>
+                            <td className="px-5 py-3 text-center font-medium text-slate-700 tabular-nums">{od}%</td>
+                            <td className="px-5 py-3 text-center font-medium text-rose-700 tabular-nums">{a}%</td>
+                            <td className="px-5 py-3 pr-6 text-right">
                               <button onClick={() => {
                                 setEditingStudent(student);
                                 setOriginalStudentId(student.id);
-                              }} className="px-3 py-1.5 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-600 hover:shadow-sm text-xs font-bold rounded-lg transition-all border border-slate-200/80 hover:border-orange-400 cursor-pointer">
-                                Edit
+                              }} className="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-xs font-medium rounded-md transition-colors border border-slate-200 cursor-pointer shadow-2xs">
+                                Edit Profile
                               </button>
                             </td>
                           </tr>
@@ -479,12 +482,12 @@ export default function AttendanceSheetView({
                                 const isOD = item?.status === "OD";
                                 return (
                                   <div key={idx} className="flex flex-col items-center">
-                                    <span className="text-[7.5px] font-black text-slate-405 mb-0.5 leading-none">H{idx + 1}</span>
+                                    <span className="text-[7.5px] font-black text-slate-400 mb-0.5 leading-none">H{idx + 1}</span>
                                     {item ? (
-                                      <span className={`inline-block w-5 h-5 flex items-center justify-center rounded-md text-[9px] font-black leading-none ${
-                                        isP ? "bg-emerald-100 text-emerald-700" :
-                                        isOD ? "bg-blue-100 text-blue-700" :
-                                        "bg-rose-100 text-rose-700"
+                                      <span className={`inline-block w-5 h-5 flex items-center justify-center rounded-md text-[9px] font-bold leading-none ${
+                                        isP ? "bg-slate-100 text-slate-800" :
+                                        isOD ? "bg-orange-50 text-orange-700 border border-orange-200/60" :
+                                        "bg-rose-50 text-rose-700 border border-rose-200/60"
                                       }`}>
                                         {item.status}
                                       </span>
@@ -503,10 +506,10 @@ export default function AttendanceSheetView({
                           <div key={student.id} className="p-4 space-y-2">
                             <div className="flex items-center justify-between">
                               <div>
-                                <h4 className="font-bold text-slate-800 text-sm">{student.name}</h4>
+                                <h4 className="font-bold text-slate-900 text-sm">{student.name}</h4>
                                 <span className="font-mono text-[10px] font-bold text-slate-400">{student.id}</span>
                               </div>
-                              <button onClick={() => setSelectedStudent(student)} className="px-3 py-1 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-655 hover:border-orange-400 text-xs font-bold rounded-lg border border-slate-200/80 transition-all cursor-pointer">
+                              <button onClick={() => setSelectedStudent(student)} className="px-3 py-1 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg border border-slate-200 transition-colors cursor-pointer">
                                 Logs
                               </button>
                             </div>
@@ -520,10 +523,10 @@ export default function AttendanceSheetView({
                                 return (
                                   <div key={dateStr} className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[9px] font-bold">
                                     <span className="text-slate-400">{dateStr.substring(0, 5)}:</span>
-                                    {isFullP ? <span className="text-emerald-600 font-black">P</span> :
-                                     isFullA ? <span className="text-rose-600 font-black">A</span> :
-                                     isOD ? <span className="text-blue-600 font-black">OD</span> :
-                                     <span className="text-amber-600 font-black">{summary.pCount}/{summary.totalCount}</span>}
+                                    {isFullP ? <span className="text-slate-800 font-bold">P</span> :
+                                     isFullA ? <span className="text-rose-600 font-bold">A</span> :
+                                     isOD ? <span className="text-orange-600 font-bold">OD</span> :
+                                     <span className="text-slate-900 font-bold">{summary.pCount}/{summary.totalCount}</span>}
                                   </div>
                                 );
                               })}
@@ -537,31 +540,31 @@ export default function AttendanceSheetView({
                   {/* Desktop Daily Table View */}
                   <table className="hidden sm:table w-full border-collapse text-left">
                     <thead>
-                      <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider bg-slate-50/50 select-none">
-                        <th onClick={() => handleSort("name")} className="p-4 pl-6 cursor-pointer hover:text-slate-700 transition-colors">
-                          <span className="inline-flex items-center">Name {renderSortIndicator("name")}</span>
+                      <tr className="border-b border-slate-100 text-slate-400 text-[11px] font-medium uppercase tracking-wider bg-slate-50/40 select-none">
+                        <th onClick={() => handleSort("name")} className="px-5 py-3 cursor-pointer hover:text-slate-700 transition-colors">
+                          <span className="inline-flex items-center">Student Name {renderSortIndicator("name")}</span>
                         </th>
                         {filterType === "single" ? (
                           <>
-                            <th className="p-4 text-center">1st Hour</th>
-                            <th className="p-4 text-center">2nd Hour</th>
-                            <th className="p-4 text-center">3rd Hour</th>
-                            <th className="p-4 text-center">4th Hour</th>
-                            <th className="p-4 text-center">5th Hour</th>
-                            <th className="p-4 text-center">6th Hour</th>
-                            <th className="p-4 text-center">7th Hour</th>
+                            <th className="px-3 py-3 text-center">Period 1</th>
+                            <th className="px-3 py-3 text-center">Period 2</th>
+                            <th className="px-3 py-3 text-center">Period 3</th>
+                            <th className="px-3 py-3 text-center">Period 4</th>
+                            <th className="px-3 py-3 text-center">Period 5</th>
+                            <th className="px-3 py-3 text-center">Period 6</th>
+                            <th className="px-3 py-3 text-center">Period 7</th>
                           </>
                         ) : (
                           activeDates.map(dateStr => (
-                            <th key={dateStr} className="p-4 text-center font-mono text-[10px] tracking-wider min-w-[70px]">
+                            <th key={dateStr} className="px-3 py-3 text-center font-mono text-[10px] tracking-wider min-w-[70px]">
                               {dateStr.substring(0, 5)}
                             </th>
                           ))
                         )}
-                        <th className="p-4 pr-6 text-right">Action</th>
+                        <th className="px-5 py-3 pr-6 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 text-xs">
                       {filteredStudents.map((student) => {
                         if (filterType === "single") {
                           const dailyLogs = getAttendanceSummaryForDate(student.id, selectedDate) || [];
@@ -572,33 +575,33 @@ export default function AttendanceSheetView({
                             }
                           });
                           return (
-                            <tr key={student.id} className={`group hover:bg-slate-50/40 transition-colors ${selectedStudent?.id === student.id ? "bg-orange-50/20" : ""}`}>
-                              <td className="p-4 pl-6 font-bold text-slate-800 group-hover:text-orange-600 transition-colors">
+                            <tr key={student.id} className={`group hover:bg-slate-50/60 transition-colors ${selectedStudent?.id === student.id ? "bg-slate-50" : ""}`}>
+                              <td className="px-5 py-3 text-slate-900 font-medium">
                                 <div>
                                   <div className="truncate max-w-[200px]">{student.name}</div>
-                                  <div className="text-[10px] font-mono font-semibold text-slate-400 mt-0.5">{student.id}</div>
+                                  <div className="text-[10px] font-mono text-slate-400 mt-0.5">{student.id}</div>
                                 </div>
                               </td>
                               {hourlyStatus.map((item, idx) => {
                                 const isP = item?.status === "P";
                                 const isOD = item?.status === "OD";
                                 return (
-                                  <td key={idx} className="p-4 text-center">
+                                  <td key={idx} className="px-3 py-3 text-center">
                                     {item ? (
-                                      <span className={`inline-block px-2 py-1 rounded-lg text-xs font-bold ${
-                                        isP ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
-                                        isOD ? "bg-blue-50 text-blue-600 border border-blue-100" :
-                                        "bg-rose-50 text-rose-600 border border-rose-100"
+                                      <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium ${
+                                        isP ? "bg-slate-100 text-slate-800" :
+                                        isOD ? "bg-orange-50 text-orange-700 border border-orange-200/60" :
+                                        "bg-rose-50 text-rose-700 border border-rose-200/60"
                                       }`}>
                                         {item.status}
                                       </span>
-                                    ) : "-"}
+                                    ) : <span className="text-slate-300">·</span>}
                                   </td>
                                 );
                               })}
-                              <td className="p-4 pr-6 text-right">
-                                <button onClick={() => setSelectedStudent(student)} className="px-3 py-1.5 bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-650 hover:shadow-sm text-xs font-bold rounded-lg transition-all border border-slate-200/80 hover:border-orange-400 cursor-pointer">
-                                  Logs
+                              <td className="px-5 py-3 pr-6 text-right">
+                                <button onClick={() => setSelectedStudent(student)} className="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-md transition-colors border border-slate-200 cursor-pointer shadow-2xs">
+                                  View Log
                                 </button>
                               </td>
                             </tr>
@@ -624,19 +627,19 @@ export default function AttendanceSheetView({
                                 return (
                                   <td key={dateStr} className="p-4 text-center">
                                     {isFullP ? (
-                                      <span className="inline-block px-2.5 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-lg text-xs font-bold" title="Present for all classes">
+                                      <span className="inline-block px-2.5 py-0.5 bg-slate-100 text-slate-800 rounded text-xs font-semibold" title="Present for all classes">
                                         P
                                       </span>
                                     ) : isFullA ? (
-                                      <span className="inline-block px-2.5 py-1 bg-rose-50 text-rose-600 border border-rose-100 rounded-lg text-xs font-bold" title="Absent for all classes">
+                                      <span className="inline-block px-2.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-200/60 rounded text-xs font-semibold" title="Absent for all classes">
                                         A
                                       </span>
                                     ) : isOD ? (
-                                      <span className="inline-block px-2.5 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-xs font-bold" title="On Duty">
+                                      <span className="inline-block px-2.5 py-0.5 bg-orange-50 text-orange-700 border border-orange-200/60 rounded text-xs font-semibold" title="On Duty">
                                         OD
                                       </span>
                                     ) : (
-                                      <span className="inline-block px-2.5 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-lg text-xs font-bold" title={`${summary.pCount} of ${summary.totalCount} classes present`}>
+                                      <span className="inline-block px-2.5 py-0.5 bg-slate-100 text-slate-800 rounded text-xs font-semibold" title={`${summary.pCount} of ${summary.totalCount} classes present`}>
                                         {summary.pCount}/{summary.totalCount}
                                       </span>
                                     )}

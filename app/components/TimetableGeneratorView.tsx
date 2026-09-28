@@ -1443,39 +1443,39 @@ Return strictly a JSON array of slots:
   return (
     <div className="space-y-5 animate-fade-in w-full">
       {/* Top Header & Navigation Banner */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 lg:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <div className="bg-white border border-slate-200 rounded-xl p-4 lg:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
           <button
             onClick={onBack}
-            className="p-2.5 bg-slate-50 hover:bg-orange-50 text-slate-600 hover:text-orange-600 border border-slate-200 rounded-xl transition-all cursor-pointer"
+            className="p-2 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg transition-all cursor-pointer"
             title="Back"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4" />
           </button>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-xl lg:text-2xl font-extrabold text-slate-800 tracking-tight">
+              <h2 className="text-lg lg:text-xl font-semibold text-slate-900 tracking-tight">
                 Timetable Generator & AI Engine
               </h2>
-              <span className="px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider uppercase bg-orange-100 border border-orange-200 text-orange-700 rounded-full">
+              <span className="px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase bg-slate-100 border border-slate-200 text-slate-700 rounded-md">
                 Multi-Constraint Solver
               </span>
             </div>
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
               {selectedDept ? `${selectedDept.name} Department` : "Global Academic Timetable"} · Presenza Engine
             </p>
           </div>
         </div>
 
         {/* Action Controls & Tab Switcher */}
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <div className="flex rounded-xl border border-slate-200 p-1 bg-slate-50">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex rounded-lg border border-slate-200 p-0.5 bg-slate-100/60">
             <button
               onClick={() => setActiveTab("INPUTS")}
-              className={`px-3.5 py-1.5 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
                 activeTab === "INPUTS"
-                  ? "bg-white text-orange-600 shadow-sm"
-                  : "text-slate-500 hover:text-slate-800"
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-500 hover:text-slate-900"
               }`}
             >
               Data Inputs
@@ -1483,9 +1483,9 @@ Return strictly a JSON array of slots:
             <button
               onClick={() => setActiveTab("TIMETABLE")}
               disabled={!finalTimetable}
-              className={`px-3.5 py-1.5 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
                 activeTab === "TIMETABLE"
-                  ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
+                  ? "bg-slate-900 text-white shadow-xs"
                   : "text-slate-400 hover:text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
               }`}
             >
@@ -1497,26 +1497,26 @@ Return strictly a JSON array of slots:
             <button
               onClick={handlePublishToAllClasses}
               disabled={isPublishing}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-extrabold text-xs shadow-md transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-semibold text-xs transition-all cursor-pointer ${
                 publishSuccess
-                  ? "bg-emerald-600 text-white shadow-emerald-600/20"
-                  : "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 active:scale-95"
+                  ? "bg-orange-600 text-white ring-2 ring-orange-500/20"
+                  : "bg-orange-600 hover:bg-orange-700 text-white"
               }`}
               title="Publish this generated schedule to all respective class timetables in Presenza"
             >
               {isPublishing ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
               ) : publishSuccess ? (
-                <CheckCircle2 className="h-4 w-4 text-emerald-200" />
+                <CheckCircle2 className="h-3.5 w-3.5 text-white" />
               ) : (
-                <Sparkles className="h-4 w-4" />
+                <Sparkles className="h-3.5 w-3.5" />
               )}
               <span>
                 {isPublishing
-                  ? "Publishing to Classes..."
+                  ? "Publishing..."
                   : publishSuccess
-                  ? "Published to All Classes!"
-                  : "Apply to All Class Timetables"}
+                  ? "Published!"
+                  : "Publish to Classes"}
               </span>
             </button>
           )}
@@ -1530,10 +1530,10 @@ Return strictly a JSON array of slots:
                 setShowAIPromptModal(true);
               }}
               disabled={isProcessing}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 active:scale-95 text-xs font-extrabold shadow-xs transition-all cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
               title="Restructure current timetable with custom human instructions"
             >
-              <SlidersHorizontal className="h-4 w-4 text-purple-600" />
+              <SlidersHorizontal className="h-3.5 w-3.5 text-slate-500" />
               <span>AI Restructure</span>
             </button>
           )}
@@ -1546,10 +1546,10 @@ Return strictly a JSON array of slots:
               setShowAIPromptModal(true);
             }}
             disabled={isProcessing}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 active:scale-95 text-white text-xs font-extrabold shadow-md shadow-indigo-500/25 transition-all cursor-pointer disabled:opacity-50"
-            title="Generate timetable using Google Gemini AI with custom human prompt instructions"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
+            title="Generate timetable using Google Gemini AI with custom prompt instructions"
           >
-            <Wand2 className="h-4 w-4 animate-pulse" />
+            <Wand2 className="h-3.5 w-3.5" />
             <span>AI Generator</span>
           </button>
 
@@ -1557,13 +1557,13 @@ Return strictly a JSON array of slots:
           <button
             onClick={() => runAIEnginePipeline({ requireAI: false })}
             disabled={isProcessing}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-extrabold shadow-md shadow-orange-500/20 transition-all cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
             title="Instant local multi-constraint solver"
           >
             {isProcessing ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <Zap className="h-4 w-4" />
+              <Zap className="h-3.5 w-3.5" />
             )}
             <span>{isProcessing ? "Solving..." : "Quick Solver"}</span>
           </button>
@@ -1572,26 +1572,26 @@ Return strictly a JSON array of slots:
 
       {/* AI Success Notification */}
       {aiGeneratedSuccess && (
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 border border-indigo-200/80 shadow-sm flex items-center justify-between gap-3 animate-fade-in">
+        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 shadow-xs flex items-center justify-between gap-3 animate-fade-in">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-              <Sparkles className="h-5 w-5" />
+            <div className="h-8 w-8 rounded-lg bg-slate-900 text-white flex items-center justify-center shrink-0">
+              <Sparkles className="h-4 w-4 text-orange-400" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-xs font-extrabold text-indigo-950">AI Schedule Generated</p>
+                <p className="text-xs font-bold text-slate-900">AI Schedule Generated</p>
                 {aiEngineUsed && (
-                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-indigo-100 border border-indigo-200 text-indigo-800 font-mono">
+                  <span className="px-2 py-0.5 text-[10px] font-mono font-semibold rounded-md bg-white border border-slate-200 text-slate-700">
                     {aiEngineUsed}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-indigo-700 font-medium mt-0.5">{aiGeneratedSuccess}</p>
+              <p className="text-xs text-slate-600 font-medium mt-0.5">{aiGeneratedSuccess}</p>
             </div>
           </div>
           <button
             onClick={() => setAiGeneratedSuccess(null)}
-            className="p-1.5 text-indigo-400 hover:text-indigo-700 hover:bg-indigo-100 rounded-lg transition-colors cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer"
             title="Dismiss"
           >
             <X className="h-4 w-4" />
@@ -1602,11 +1602,11 @@ Return strictly a JSON array of slots:
       {/* Processing Banner */}
       {isProcessing && (
         <div className="p-4 lg:p-5 rounded-2xl bg-orange-50 border border-orange-200 shadow-sm flex items-center gap-4 animate-pulse">
-          <div className="h-10 w-10 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-orange-500/20">
+          <div className="h-10 w-10 rounded-xl bg-orange-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-orange-500/20">
             <Zap className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-extrabold text-orange-950">
+            <p className="text-sm font-semibold text-orange-950">
               SchedulAI Constraint Optimization Engine Active
             </p>
             <p className="text-xs text-orange-700 font-medium mt-0.5">{pipelineStage}</p>
@@ -1624,7 +1624,7 @@ Return strictly a JSON array of slots:
                 <Clock className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-sm font-extrabold text-slate-800">
+                <h3 className="text-sm font-semibold text-slate-800">
                   Weekly Schedule Parameters
                 </h3>
                 <p className="text-xs text-slate-400 font-semibold">
@@ -1640,7 +1640,7 @@ Return strictly a JSON array of slots:
                 <select
                   value={activeDeptFilter}
                   onChange={(e) => setActiveDeptFilter(e.target.value)}
-                  className="border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 font-bold text-slate-800 outline-none focus:border-orange-500 cursor-pointer"
+                  className="border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 font-medium text-slate-800 outline-none focus:border-orange-500 cursor-pointer"
                 >
                   <option value="ALL">All Departments</option>
                   {departments.map((d) => (
@@ -1656,7 +1656,7 @@ Return strictly a JSON array of slots:
                 <select
                   value={weeksInSemester}
                   onChange={(e) => updateSemesterWeeks(Number(e.target.value))}
-                  className="border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 font-bold text-slate-800 outline-none focus:border-orange-500 cursor-pointer"
+                  className="border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 font-medium text-slate-800 outline-none focus:border-orange-500 cursor-pointer"
                 >
                   <option value={12}>12 Weeks</option>
                   <option value={14}>14 Weeks</option>
@@ -1671,7 +1671,7 @@ Return strictly a JSON array of slots:
                 <select
                   value={periodsPerDay}
                   onChange={(e) => setPeriodsPerDay(Number(e.target.value))}
-                  className="border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 font-bold text-slate-800 outline-none focus:border-orange-500 cursor-pointer"
+                  className="border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 font-medium text-slate-800 outline-none focus:border-orange-500 cursor-pointer"
                 >
                   <option value={6}>6 Periods</option>
                   <option value={7}>7 Periods</option>
@@ -1706,10 +1706,10 @@ Return strictly a JSON array of slots:
                     <Building2 className="h-4 w-4" />
                   </div>
                   <div>
-                    <h2 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                    <h2 className="text-xs font-semibold text-slate-800 uppercase tracking-wider">
                       1. Classes & Lunch
                     </h2>
-                    <span className="text-[10px] text-slate-400 font-bold">
+                    <span className="text-[10px] text-slate-400 font-normal">
                       {classes.filter((c) => c.name.trim()).length} active classes
                     </span>
                   </div>
@@ -1721,7 +1721,7 @@ Return strictly a JSON array of slots:
               <div className="space-y-2 max-h-60 overflow-y-auto pr-1 flex-1 custom-scrollbar">
                 {classes.map((cls, idx) => (
                   <div key={cls.id} className="flex items-center gap-2">
-                    <span className="text-[11px] font-extrabold text-slate-300 w-4 text-center">
+                    <span className="text-[11px] font-semibold text-slate-300 w-4 text-center">
                       {idx + 1}
                     </span>
                     <input
@@ -1729,14 +1729,14 @@ Return strictly a JSON array of slots:
                       value={cls.name}
                       onChange={(e) => handleClassChange(idx, "name", e.target.value)}
                       placeholder="e.g. SECCJ2030A"
-                      className="flex-1 text-xs font-bold border border-slate-200 rounded-xl px-3 py-2 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-orange-500 transition-all text-slate-800"
+                      className="flex-1 text-xs font-normal border border-slate-200 rounded-xl px-3 py-2 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-orange-500 transition-all text-slate-800"
                     />
                     <select
                       value={cls.lunchPeriod}
                       onChange={(e) =>
                         handleClassChange(idx, "lunchPeriod", Number(e.target.value))
                       }
-                      className="text-[10px] font-extrabold border border-amber-200 bg-amber-50 text-amber-900 rounded-xl px-2 py-2 outline-none cursor-pointer"
+                      className="text-[10px] font-semibold border border-orange-200 bg-orange-50 text-orange-900 rounded-xl px-2 py-2 outline-none cursor-pointer"
                       title="Class Lunch Break Period"
                     >
                       <option value={3}>Lunch P3</option>
@@ -1753,14 +1753,14 @@ Return strictly a JSON array of slots:
             <div className="bg-white border border-slate-200 rounded-2xl p-4 lg:p-5 shadow-sm flex flex-col">
               <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
-                  <div className="h-7 w-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <div className="h-7 w-7 rounded-lg bg-slate-100 text-slate-800 flex items-center justify-center">
                     <Users className="h-4 w-4" />
                   </div>
                   <div>
-                    <h2 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                    <h2 className="text-xs font-semibold text-slate-800 uppercase tracking-wider">
                       2. Faculty Directory
                     </h2>
-                    <span className="text-[10px] text-slate-400 font-bold">
+                    <span className="text-[10px] text-slate-400 font-normal">
                       {facultyList.filter((f) => f.name.trim()).length} teachers loaded
                     </span>
                   </div>
@@ -1772,7 +1772,7 @@ Return strictly a JSON array of slots:
               <div className="space-y-2 max-h-60 overflow-y-auto pr-1 flex-1 custom-scrollbar">
                 {facultyList.map((fac, idx) => (
                   <div key={fac.id} className="flex items-center gap-2">
-                    <span className="text-[11px] font-extrabold text-slate-300 w-4 text-center">
+                    <span className="text-[11px] font-semibold text-slate-300 w-4 text-center">
                       {idx + 1}
                     </span>
                     <input
@@ -1780,7 +1780,7 @@ Return strictly a JSON array of slots:
                       value={fac.name}
                       onChange={(e) => handleFacultyChange(idx, "name", e.target.value)}
                       placeholder="Faculty Name"
-                      className="flex-1 text-xs font-bold border border-slate-200 rounded-xl px-3 py-2 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-orange-500 transition-all text-slate-800"
+                      className="flex-1 text-xs font-normal border border-slate-200 rounded-xl px-3 py-2 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-orange-500 transition-all text-slate-800"
                     />
                   </div>
                 ))}
@@ -1791,14 +1791,14 @@ Return strictly a JSON array of slots:
             <div className="bg-white border border-slate-200 rounded-2xl p-4 lg:p-5 shadow-sm flex flex-col">
               <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
-                  <div className="h-7 w-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+                  <div className="h-7 w-7 rounded-lg bg-slate-100 text-slate-800 flex items-center justify-center">
                     <Layers className="h-4 w-4" />
                   </div>
                   <div>
-                    <h2 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                    <h2 className="text-xs font-semibold text-slate-800 uppercase tracking-wider">
                       3. Rooms & Labs
                     </h2>
-                    <span className="text-[10px] text-slate-400 font-bold">
+                    <span className="text-[10px] text-slate-400 font-normal">
                       {rooms.filter((r) => r.name.trim()).length} venues
                     </span>
                   </div>
@@ -1810,7 +1810,7 @@ Return strictly a JSON array of slots:
               <div className="space-y-2 max-h-60 overflow-y-auto pr-1 flex-1 custom-scrollbar">
                 {rooms.map((rm, idx) => (
                   <div key={rm.id} className="flex items-center gap-2">
-                    <span className="text-[11px] font-extrabold text-slate-300 w-4 text-center">
+                    <span className="text-[11px] font-semibold text-slate-300 w-4 text-center">
                       {idx + 1}
                     </span>
                     <input
@@ -1818,12 +1818,12 @@ Return strictly a JSON array of slots:
                       value={rm.name}
                       onChange={(e) => handleRoomChange(idx, "name", e.target.value)}
                       placeholder="Room / Lab Name"
-                      className="flex-1 text-xs font-bold border border-slate-200 rounded-xl px-3 py-2 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-orange-500 transition-all text-slate-800"
+                      className="flex-1 text-xs font-normal border border-slate-200 rounded-xl px-3 py-2 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-orange-500 transition-all text-slate-800"
                     />
                     <select
                       value={rm.type}
                       onChange={(e) => handleRoomChange(idx, "type", e.target.value)}
-                      className="text-[10px] font-extrabold border border-slate-200 rounded-xl px-2 py-2 bg-slate-50 outline-none cursor-pointer text-slate-700"
+                      className="text-[10px] font-semibold border border-slate-200 rounded-xl px-2 py-2 bg-slate-50 outline-none cursor-pointer text-slate-700"
                     >
                       <option value="CLASSROOM">Room</option>
                       <option value="LAB">Lab</option>
@@ -1841,11 +1841,11 @@ Return strictly a JSON array of slots:
                 <div className="h-7 w-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
                   <BookOpen className="h-4 w-4" />
                 </div>
-                <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">
+                <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wider">
                   4. Subject Curriculum & Faculty Assignments (Class-Wise)
                 </h2>
               </div>
-              <span className="text-xs text-slate-400 font-bold">
+              <span className="text-xs text-slate-400 font-normal">
                 Configuring curriculum for {validClasses.length} Classes ({weeksInSemester} Weeks/Semester)
               </span>
             </div>
@@ -1859,10 +1859,10 @@ Return strictly a JSON array of slots:
                 >
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100 flex-wrap gap-2">
                     <div className="flex items-center gap-2.5">
-                      <span className="px-3 py-1 rounded-xl bg-orange-100 text-orange-800 font-black text-xs">
+                      <span className="px-3 py-1 rounded-xl bg-orange-100 text-orange-800 font-semibold text-xs">
                         {cls.name}
                       </span>
-                      <span className="text-xs text-slate-500 font-bold">
+                      <span className="text-xs text-slate-500 font-medium">
                         Lunch: Period {cls.lunchPeriod} ·{" "}
                         {classSubjects.filter((s) => s.name.trim() !== "").length}{" "}
                         Subjects Assigned
@@ -1880,13 +1880,13 @@ Return strictly a JSON array of slots:
                   <div className="border border-slate-200 rounded-xl overflow-visible">
                     <table className="w-full table-fixed text-left text-xs border-collapse">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-extrabold uppercase text-[10px] tracking-wider">
+                        <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase text-[10px] tracking-wider">
                           <th className="p-3 w-8 text-center">#</th>
                           <th className="p-3 w-44">Subject Name</th>
                           <th className="p-3 w-28">Type</th>
                           <th className="p-3 w-48">Faculty (MSQ)</th>
                           <th className="p-3 w-28">Room</th>
-                          <th className="p-3 w-20 text-center bg-orange-50/70 text-orange-950 font-black">
+                          <th className="p-3 w-20 text-center bg-orange-50/70 text-orange-950 font-semibold">
                             Sem Hrs
                           </th>
                           <th className="p-3 w-20 text-center font-bold">Hrs/Wk</th>
@@ -1939,7 +1939,7 @@ Return strictly a JSON array of slots:
                               key={sub.id}
                               className="hover:bg-slate-50/50 transition-colors"
                             >
-                              <td className="p-2 text-center text-slate-400 font-bold text-[11px]">
+                              <td className="p-2 text-center text-slate-400 font-normal text-[11px]">
                                 {idx + 1}
                               </td>
                               <td className="p-2">
@@ -1955,7 +1955,7 @@ Return strictly a JSON array of slots:
                                     )
                                   }
                                   placeholder="e.g. DBMS"
-                                  className="w-full text-xs font-bold border border-slate-200 rounded-lg px-2.5 py-1.5 bg-slate-50/40 focus:bg-white focus:border-orange-500 focus:outline-none text-slate-800"
+                                  className="w-full text-xs font-normal border border-slate-200 rounded-lg px-2.5 py-1.5 bg-slate-50/40 focus:bg-white focus:border-orange-500 focus:outline-none text-slate-800"
                                 />
                               </td>
                               <td className="p-2">
@@ -1969,14 +1969,14 @@ Return strictly a JSON array of slots:
                                       e.target.value
                                     )
                                   }
-                                  className={`w-full text-[11px] font-extrabold border border-slate-200 rounded-lg px-2 py-1.5 outline-none cursor-pointer ${
+                                  className={`w-full text-[11px] font-semibold border border-slate-200 rounded-lg px-2 py-1.5 outline-none cursor-pointer ${
                                     sub.type === "THEORY"
-                                      ? "bg-blue-50 text-blue-700"
+                                      ? "bg-slate-100 text-slate-800"
                                       : sub.type === "LAB"
-                                      ? "bg-purple-50 text-purple-700"
+                                      ? "bg-orange-600 text-white"
                                       : sub.type === "ELECTIVE"
-                                      ? "bg-orange-50 text-orange-700"
-                                      : "bg-teal-50 text-teal-700"
+                                      ? "bg-orange-50 text-orange-800"
+                                      : "bg-slate-200 text-slate-900"
                                   }`}
                                 >
                                   <option value="THEORY">Theory</option>
@@ -2002,7 +2002,7 @@ Return strictly a JSON array of slots:
                                           .join(", ")
                                       : "Select Faculty"}
                                   </span>
-                                  <span className="text-[9px] font-black bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded-md shrink-0">
+                                  <span className="text-[9px] font-semibold bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded-md shrink-0">
                                     {assignedFacultyIds.length} MSQ
                                   </span>
                                 </button>
@@ -2025,7 +2025,7 @@ Return strictly a JSON array of slots:
                                       onClick={(e) => e.stopPropagation()}
                                     >
                                       <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
-                                        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                                           Assign Faculty (MSQ)
                                         </span>
                                         <button
@@ -2067,7 +2067,7 @@ Return strictly a JSON array of slots:
                                                 <span
                                                   className={`text-xs ${
                                                     isChecked
-                                                      ? "font-extrabold text-orange-950"
+                                                      ? "font-semibold text-orange-950"
                                                       : "text-slate-700 font-medium"
                                                   }`}
                                                 >
@@ -2118,7 +2118,7 @@ Return strictly a JSON array of slots:
                                       Number(e.target.value)
                                     )
                                   }
-                                  className="w-full text-center text-xs font-black border border-orange-200 rounded-lg px-1 py-1.5 bg-orange-50/60 text-orange-950"
+                                  className="w-full text-center text-xs font-semibold border border-orange-200 rounded-lg px-1 py-1.5 bg-orange-50/60 text-orange-950"
                                   title="Total Semester Hours"
                                 />
                               </td>
@@ -2136,7 +2136,7 @@ Return strictly a JSON array of slots:
                                       Number(e.target.value)
                                     )
                                   }
-                                  className="w-full text-center text-xs font-extrabold border border-slate-200 rounded-lg px-1 py-1.5 bg-slate-50/40 text-slate-800"
+                                  className="w-full text-center text-xs font-semibold border border-slate-200 rounded-lg px-1 py-1.5 bg-slate-50/40 text-slate-800"
                                   title={`Computed: ${sub.hoursPerWeek} periods/week across ${weeksInSemester} weeks`}
                                 />
                               </td>
@@ -2194,8 +2194,8 @@ Return strictly a JSON array of slots:
               <div
                 className={`h-11 w-11 rounded-xl flex items-center justify-center ${
                   detectedConflicts.length === 0
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-amber-100 text-amber-700"
+                    ? "bg-orange-50 text-orange-600 border border-orange-200"
+                    : "bg-rose-50 text-rose-600 border border-rose-200"
                 }`}
               >
                 {detectedConflicts.length === 0 ? (
@@ -2205,7 +2205,7 @@ Return strictly a JSON array of slots:
                 )}
               </div>
               <div>
-                <h3 className="text-sm font-extrabold text-slate-800">
+                <h3 className="text-sm font-semibold text-slate-800">
                   {detectedConflicts.length === 0
                     ? "Constraint Verification Passed (0 Hard Conflicts)"
                     : `${detectedConflicts.length} Potential Clashes Detected`}
@@ -2221,9 +2221,9 @@ Return strictly a JSON array of slots:
               <div className="flex rounded-xl border border-slate-200 p-1 bg-slate-50">
                 <button
                   onClick={() => setTimetableSubTab("CLASS")}
-                  className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                     timetableSubTab === "CLASS"
-                      ? "bg-orange-500 text-white shadow-sm shadow-orange-500/10"
+                      ? "bg-orange-600 text-white shadow-sm shadow-orange-500/10"
                       : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
@@ -2231,9 +2231,9 @@ Return strictly a JSON array of slots:
                 </button>
                 <button
                   onClick={() => setTimetableSubTab("FACULTY")}
-                  className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                     timetableSubTab === "FACULTY"
-                      ? "bg-orange-500 text-white shadow-sm shadow-orange-500/10"
+                      ? "bg-orange-600 text-white shadow-sm shadow-orange-500/10"
                       : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
@@ -2246,7 +2246,7 @@ Return strictly a JSON array of slots:
                   <select
                     value={selectedClassView}
                     onChange={(e) => setSelectedClassView(e.target.value)}
-                    className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 bg-white outline-none focus:border-orange-500 cursor-pointer"
+                    className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 bg-white outline-none focus:border-orange-500 cursor-pointer"
                   >
                     {validClasses.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -2256,14 +2256,14 @@ Return strictly a JSON array of slots:
                   </select>
                   <button
                     onClick={() => exportPDF(selectedClassView)}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-500/20 transition-all cursor-pointer"
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-500/20 transition-all cursor-pointer"
                   >
                     <Download className="h-4 w-4" /> Export PDF
                   </button>
                   <button
                     onClick={handlePublishToAllClasses}
                     disabled={isPublishing}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
                     title="Publish this timetable to all respective classes"
                   >
                     {isPublishing ? (
@@ -2279,7 +2279,7 @@ Return strictly a JSON array of slots:
                   <select
                     value={selectedFacultyView}
                     onChange={(e) => setSelectedFacultyView(e.target.value)}
-                    className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 bg-white outline-none focus:border-orange-500 cursor-pointer"
+                    className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 bg-white outline-none focus:border-orange-500 cursor-pointer"
                   >
                     {validFaculty.map((f) => (
                       <option key={f.id} value={f.id}>
@@ -2297,10 +2297,10 @@ Return strictly a JSON array of slots:
             <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 flex-wrap gap-2">
                 <div>
-                  <h3 className="text-base font-extrabold text-slate-800">
+                  <h3 className="text-base font-semibold text-slate-800">
                     {selectedClassObj?.name || "Class Timetable"}
                   </h3>
-                  <p className="text-xs text-amber-700 font-bold mt-0.5">
+                  <p className="text-xs text-orange-700 font-bold mt-0.5">
                     Designated Lunch Break: Period {selectedClassLunch}
                   </p>
                 </div>
@@ -2314,22 +2314,22 @@ Return strictly a JSON array of slots:
                 <table className="w-full border-collapse text-left text-xs min-w-[700px]">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="p-3 w-24 font-extrabold text-slate-700 uppercase tracking-wider text-center border-r border-slate-200 text-[11px]">
+                      <th className="p-3 w-24 font-semibold text-slate-700 uppercase tracking-wider text-center border-r border-slate-200 text-[11px]">
                         Day
                       </th>
                       {Array.from({ length: periodsPerDay }, (_, i) => i + 1).map(
                         (period) => (
                           <th
                             key={period}
-                            className={`p-3 font-extrabold text-center border-r border-slate-200 text-[11px] ${
+                            className={`p-3 font-medium text-center border-r border-slate-200 text-[11px] ${
                               period === selectedClassLunch
-                                ? "bg-amber-100/70 text-amber-900"
+                                ? "bg-orange-50 text-orange-900"
                                 : "text-slate-800"
                             }`}
                           >
                             P{period}
                             {period === selectedClassLunch ? (
-                              <span className="block text-[9px] font-bold text-amber-700 uppercase">
+                              <span className="block text-[9px] font-bold text-orange-700 uppercase">
                                 Lunch
                               </span>
                             ) : (
@@ -2348,7 +2348,7 @@ Return strictly a JSON array of slots:
                         key={day}
                         className="border-b border-slate-200 hover:bg-slate-50/50 transition-colors"
                       >
-                        <td className="p-3 font-extrabold text-slate-800 bg-slate-50 border-r border-slate-200 text-center text-xs uppercase tracking-wider">
+                        <td className="p-3 font-semibold text-slate-800 bg-slate-50 border-r border-slate-200 text-center text-xs uppercase tracking-wider">
                           {day}
                         </td>
                         {Array.from({ length: periodsPerDay }, (_, i) => i + 1).map(
@@ -2357,9 +2357,9 @@ Return strictly a JSON array of slots:
                               return (
                                 <td
                                   key={period}
-                                  className="p-1.5 text-center bg-amber-50/80 border-r border-slate-200"
+                                  className="p-1.5 text-center bg-orange-50/60 border-r border-slate-200"
                                 >
-                                  <div className="h-full min-h-[56px] flex items-center justify-center rounded-lg bg-amber-100/60 text-amber-800 font-black text-[10px] tracking-wider uppercase">
+                                  <div className="h-full min-h-[56px] flex items-center justify-center rounded-lg bg-orange-100/70 text-orange-800 font-semibold text-[10px] tracking-wider uppercase">
                                     LUNCH
                                   </div>
                                 </td>
@@ -2405,29 +2405,29 @@ Return strictly a JSON array of slots:
                                         key={sIdx}
                                         className={`p-2 rounded-xl border flex flex-col justify-between min-h-[58px] shadow-xs ${
                                           isLab
-                                            ? "bg-purple-50/80 border-purple-200 text-purple-950"
+                                            ? "bg-slate-100 border-slate-300 text-slate-900"
                                             : isProject
-                                            ? "bg-teal-50/80 border-teal-200 text-teal-950"
+                                            ? "bg-slate-50 border-slate-200 text-slate-800"
                                             : isElective
                                             ? "bg-orange-50/80 border-orange-200 text-orange-950"
-                                            : "bg-blue-50/70 border-blue-200 text-blue-950"
+                                            : "bg-white border-slate-200 text-slate-900"
                                         }`}
                                       >
                                         <div className="flex items-start justify-between gap-1">
                                           <span
-                                            className="font-extrabold text-[11px] leading-tight truncate"
+                                            className="font-semibold text-[11px] leading-tight truncate"
                                             title={slot.subject}
                                           >
                                             {slot.subject}
                                           </span>
                                           {isLab && (
-                                            <span className="text-[8px] font-black bg-purple-200 text-purple-800 px-1 py-0.2 rounded shrink-0">
+                                            <span className="text-[8px] font-semibold bg-slate-900 text-white px-1.5 py-0.5 rounded-sm shrink-0">
                                               LAB
                                             </span>
                                           )}
                                         </div>
 
-                                        <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold mt-1">
+                                        <div className="flex items-center justify-between text-[9px] text-slate-500 font-medium mt-1">
                                           <span
                                             className="truncate max-w-[70%]"
                                             title={
@@ -2443,7 +2443,7 @@ Return strictly a JSON array of slots:
                                               : slot.faculty}
                                           </span>
                                           {slot.room && (
-                                            <span className="px-1 bg-white border border-slate-200 rounded text-[8px] font-extrabold text-slate-700 shrink-0">
+                                            <span className="px-1 bg-white border border-slate-200 rounded text-[8px] font-semibold text-slate-700 shrink-0">
                                               {slot.room}
                                             </span>
                                           )}
@@ -2469,11 +2469,11 @@ Return strictly a JSON array of slots:
             <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 flex-wrap gap-2">
                 <div>
-                  <h3 className="text-base font-extrabold text-slate-800">
+                  <h3 className="text-base font-semibold text-slate-800">
                     {validFaculty.find((f) => f.id === selectedFacultyView)?.name ||
                       "Faculty Timetable"}
                   </h3>
-                  <p className="text-xs text-slate-400 font-bold mt-0.5">
+                  <p className="text-xs text-slate-400 font-normal mt-0.5">
                     Individual Teaching Schedule across all classes
                   </p>
                 </div>
@@ -2487,14 +2487,14 @@ Return strictly a JSON array of slots:
                 <table className="w-full border-collapse text-left text-xs min-w-[700px]">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="p-3 w-24 font-extrabold text-slate-700 uppercase tracking-wider text-center border-r border-slate-200 text-[11px]">
+                      <th className="p-3 w-24 font-semibold text-slate-700 uppercase tracking-wider text-center border-r border-slate-200 text-[11px]">
                         Day
                       </th>
                       {Array.from({ length: periodsPerDay }, (_, i) => i + 1).map(
                         (period) => (
                           <th
                             key={period}
-                            className="p-3 font-extrabold text-center border-r border-slate-200 text-[11px] text-slate-800"
+                            className="p-3 font-medium text-center border-r border-slate-200 text-[11px] text-slate-800"
                           >
                             P{period}
                             <span className="block text-[9px] font-normal text-slate-400">
@@ -2515,7 +2515,7 @@ Return strictly a JSON array of slots:
                           key={day}
                           className="border-b border-slate-200 hover:bg-slate-50/50 transition-colors"
                         >
-                          <td className="p-3 font-extrabold text-slate-800 bg-slate-50 border-r border-slate-200 text-center text-xs uppercase tracking-wider">
+                          <td className="p-3 font-semibold text-slate-800 bg-slate-50 border-r border-slate-200 text-center text-xs uppercase tracking-wider">
                             {day}
                           </td>
                           {Array.from({ length: periodsPerDay }, (_, i) => i + 1).map(
@@ -2549,28 +2549,28 @@ Return strictly a JSON array of slots:
                                   <div
                                     className={`p-2 rounded-xl border flex flex-col justify-between min-h-[56px] shadow-xs ${
                                       isLab
-                                        ? "bg-purple-50/80 border-purple-200 text-purple-950"
-                                        : "bg-blue-50/70 border-blue-200 text-blue-950"
+                                        ? "bg-slate-100 border-slate-300 text-slate-900"
+                                        : "bg-white border-slate-200 text-slate-900"
                                     }`}
                                   >
                                     <div className="flex items-start justify-between gap-1">
                                       <span
-                                        className="font-extrabold text-[11px] leading-tight truncate"
+                                        className="font-semibold text-[11px] leading-tight truncate"
                                         title={matchedSlot.subject}
                                       >
                                         {matchedSlot.subject}
                                       </span>
-                                      <span className="text-[8px] font-black bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded-md shrink-0">
+                                      <span className="text-[8px] font-semibold bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded-md shrink-0">
                                         {matchedSlot.className}
                                       </span>
                                     </div>
 
-                                    <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold mt-1">
+                                    <div className="flex items-center justify-between text-[9px] text-slate-500 font-medium mt-1">
                                       <span className="truncate max-w-[70%]">
                                         {matchedSlot.room || "Room"}
                                       </span>
                                       {matchedSlot.secondaryFaculty && (
-                                        <span className="text-[8px] font-black text-purple-700 bg-purple-100 px-1 py-0.2 rounded">
+                                        <span className="text-[8px] font-semibold text-slate-700 bg-slate-200 px-1 py-0.2 rounded">
                                           Shared
                                         </span>
                                       )}
@@ -2591,21 +2591,21 @@ Return strictly a JSON array of slots:
         </div>
       )}
 
-      {/* ── AI Prompt & Restructuring Modal (Portaled to document.body) ── */}
+        {/* ── AI Prompt & Restructuring Modal (Portaled to document.body) ── */}
       {showAIPromptModal && mounted && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl w-full max-w-2xl md:max-w-3xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-2xl md:max-w-3xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
-            <div className="p-5 sm:p-6 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white flex items-center justify-between shrink-0">
+            <div className="p-5 sm:p-6 bg-slate-900 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-purple-500 to-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                  <Wand2 className="h-5 w-5 text-white" />
+                <div className="h-9 w-9 rounded-xl bg-orange-600 flex items-center justify-center">
+                  <Wand2 className="h-4 w-4 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-tight">
+                  <h3 className="text-base font-bold tracking-tight">
                     {isRestructureMode ? "Restructure Timetable with AI" : "AI Timetable Studio"}
                   </h3>
-                  <p className="text-xs text-indigo-200 font-medium">
+                  <p className="text-xs text-slate-300 font-normal">
                     {isRestructureMode
                       ? "Guide Gemini to rebalance or rearrange the existing timetable"
                       : "Provide natural language requirements for Google Gemini AI to schedule"}
@@ -2616,8 +2616,8 @@ Return strictly a JSON array of slots:
                 <button
                   type="button"
                   onClick={() => setShowApiKeyInput(!showApiKeyInput)}
-                  className={`p-2 rounded-xl transition-colors cursor-pointer ${
-                    showApiKeyInput ? "text-amber-300 bg-white/10" : "text-slate-300 hover:text-white hover:bg-white/10"
+                  className={`p-2 rounded-lg transition-colors cursor-pointer ${
+                    showApiKeyInput ? "text-orange-400 bg-white/10" : "text-slate-300 hover:text-white hover:bg-white/10"
                   }`}
                   title="Configure Gemini API Key"
                 >
@@ -2628,10 +2628,10 @@ Return strictly a JSON array of slots:
                     setShowAIPromptModal(false);
                     setAiErrorMsg(null);
                   }}
-                  className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                   title="Close"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -2640,17 +2640,17 @@ Return strictly a JSON array of slots:
             <div className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1">
               {/* Optional Custom API Key Drawer */}
               {(showApiKeyInput || aiErrorMsg) && (
-                <div className="p-4 rounded-2xl bg-amber-50/90 border border-amber-200 space-y-2.5 animate-fade-in">
+                <div className="p-4 rounded-2xl bg-orange-50/70 border border-orange-200 space-y-2.5 animate-fade-in">
                   <div className="flex items-center justify-between flex-wrap gap-1">
-                    <label className="text-xs font-extrabold text-amber-950 flex items-center gap-1.5">
-                      <Key className="h-3.5 w-3.5 text-amber-600" />
+                    <label className="text-xs font-semibold text-orange-950 flex items-center gap-1.5">
+                      <Key className="h-3.5 w-3.5 text-orange-600" />
                       <span>Custom Google Gemini API Key</span>
                     </label>
                     <a
                       href="https://aistudio.google.com/app/apikey"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline"
+                      className="text-[11px] font-bold text-orange-600 hover:text-orange-700 hover:underline"
                     >
                       Get Free Key at Google AI Studio &rarr;
                     </a>
@@ -2661,19 +2661,19 @@ Return strictly a JSON array of slots:
                       value={customApiKey}
                       onChange={(e) => handleApiKeyChange(e.target.value)}
                       placeholder="Paste your Gemini API key (starts with AIzaSy...)"
-                      className="flex-1 bg-white border border-amber-300 focus:border-amber-500 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 outline-none"
+                      className="flex-1 bg-white border border-orange-200 focus:border-orange-500 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 outline-none"
                     />
                     {customApiKey && (
                       <button
                         type="button"
                         onClick={() => handleApiKeyChange("")}
-                        className="px-2.5 py-2 text-xs font-bold text-slate-500 hover:text-rose-600 bg-white border border-slate-200 rounded-xl cursor-pointer"
+                        className="px-2.5 py-2 text-xs font-medium text-slate-500 hover:text-rose-600 bg-white border border-slate-200 rounded-xl cursor-pointer"
                       >
                         Clear
                       </button>
                     )}
                   </div>
-                  <p className="text-[11px] text-amber-800 leading-normal">
+                  <p className="text-[11px] text-orange-800 leading-normal">
                     Stored safely in your browser session. Use this if your server key has denied permissions.
                   </p>
                 </div>
@@ -2688,9 +2688,9 @@ Return strictly a JSON array of slots:
                       setIsRestructureMode(false);
                       setAiErrorMsg(null);
                     }}
-                    className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                       !isRestructureMode
-                        ? "bg-white text-indigo-700 shadow-sm"
+                        ? "bg-white text-slate-900 shadow-sm font-semibold"
                         : "text-slate-500 hover:text-slate-800"
                     }`}
                   >
@@ -2703,9 +2703,9 @@ Return strictly a JSON array of slots:
                       setIsRestructureMode(true);
                       setAiErrorMsg(null);
                     }}
-                    className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                       isRestructureMode
-                        ? "bg-white text-purple-700 shadow-sm"
+                        ? "bg-white text-slate-900 shadow-sm font-semibold"
                         : "text-slate-500 hover:text-slate-800"
                     }`}
                   >
@@ -2719,7 +2719,7 @@ Return strictly a JSON array of slots:
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <MessageSquareText className="h-4 w-4 text-indigo-600" />
+                    <MessageSquareText className="h-4 w-4 text-orange-600" />
                     <span>
                       {isRestructureMode
                         ? "Restructuring Instructions"
@@ -2737,14 +2737,14 @@ Return strictly a JSON array of slots:
                       ? "e.g., Move DBMS Lab from Monday to Wednesday afternoon. Swap Period 1 and Period 2 for SECCJ2030A. Make sure Dr. M.Nithya only teaches forenoon sessions."
                       : "e.g., Keep Friday afternoon (Period 6 and 7) free for project club activities. Schedule all Laboratory sessions in forenoon. Prioritize senior faculty for Period 1."
                   }
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white rounded-2xl p-4 text-xs font-medium text-slate-800 outline-none transition-all placeholder:text-slate-400 leading-relaxed shadow-inner resize-none"
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 focus:bg-white rounded-2xl p-4 text-xs font-medium text-slate-800 outline-none transition-all placeholder:text-slate-400 leading-relaxed shadow-inner resize-none"
                 />
               </div>
 
               {/* Quick Inspiration Chips */}
               <div className="space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
-                  <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
+                <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                  <Lightbulb className="h-3.5 w-3.5 text-orange-600" />
                   <span>Quick Preset Prompts:</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -2765,7 +2765,7 @@ Return strictly a JSON array of slots:
                           return `${trimmed}. ${preset}`;
                         });
                       }}
-                      className="px-2.5 py-1 rounded-lg bg-indigo-50/70 hover:bg-indigo-100 text-indigo-700 border border-indigo-100 text-[11px] font-semibold transition-all cursor-pointer active:scale-95 text-left"
+                      className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 text-[11px] font-semibold transition-all cursor-pointer active:scale-95 text-left"
                     >
                       + {preset}
                     </button>
@@ -2779,13 +2779,13 @@ Return strictly a JSON array of slots:
                   <div className="flex items-start gap-2.5">
                     <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
                     <div className="text-xs space-y-1">
-                      <p className="font-extrabold text-rose-900">Gemini AI Service Alert</p>
+                      <p className="font-semibold text-rose-900">Gemini AI Service Alert</p>
                       <p className="font-mono text-[11px] leading-relaxed break-all text-rose-700">
                         {aiErrorMsg}
                       </p>
                       {aiErrorMsg.includes("denied access") && (
                         <p className="text-[11px] text-rose-800 font-medium pt-1">
-                          Tip: The Google project was denied access for this key. Paste a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline font-bold text-indigo-700">Google AI Studio</a> above, or click below to generate instantly using the local solver.
+                          Tip: The Google project was denied access for this key. Paste a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline font-bold text-orange-600">Google AI Studio</a> above, or click below to generate instantly using the local solver.
                         </p>
                       )}
                     </div>
@@ -2797,7 +2797,7 @@ Return strictly a JSON array of slots:
                         setShowAIPromptModal(false);
                         runAIEnginePipeline({ requireAI: false });
                       }}
-                      className="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-extrabold transition-all cursor-pointer shadow-sm active:scale-95"
+                      className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-600 text-white text-xs font-semibold transition-all cursor-pointer shadow-sm active:scale-95"
                     >
                       ⚡ Use Local Solver Instead
                     </button>
@@ -2809,7 +2809,7 @@ Return strictly a JSON array of slots:
             {/* Modal Footer */}
             <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-2 text-xs text-slate-500">
-                <Bot className="h-4 w-4 text-indigo-500" />
+                <Bot className="h-4 w-4 text-slate-400" />
                 <span>Google Gemini 2.5 / Flash AI</span>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
@@ -2834,7 +2834,7 @@ Return strictly a JSON array of slots:
                     })
                   }
                   disabled={isProcessing}
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 active:scale-95 text-white text-xs font-extrabold shadow-md shadow-indigo-500/25 transition-all cursor-pointer disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 active:scale-95 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer disabled:opacity-50"
                 >
                   {isProcessing ? (
                     <>

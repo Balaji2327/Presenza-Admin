@@ -76,29 +76,30 @@ export default function TimetableEditorView({
   };
 
   return (
-    <div className="bg-white border border-slate-200 p-4 lg:p-6 rounded-2xl shadow-sm space-y-4 lg:space-y-6 animate-fade-in">
+    <div className="bg-white border border-slate-200/80 p-4 lg:p-6 rounded-xl shadow-2xs space-y-4 lg:space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
         <div>
-          <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-orange-500" /> Timetable Grid Editor
+          <h3 className="font-semibold text-sm sm:text-base text-slate-900 flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-slate-700" />
+            Timetable Grid Editor
           </h3>
-          <p className="text-xs text-slate-450 mt-1 font-semibold">
-            Manually create or edit the Monday to Friday (Periods 1 to 7) timetable for {selectedClass || "selected class"} (SEM {selectedSemester})
+          <p className="text-xs text-slate-500 mt-0.5">
+            Configure periods 1 through 7 (Monday–Friday) for {selectedClass || "selected class"} (SEM {selectedSemester})
           </p>
         </div>
         {selectedClass && (
-          <div className="flex gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={handleClearTimetable}
               disabled={uploadingTimetable}
-              className="px-4 py-2 bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-100 text-rose-600 text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-1.5 bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 hover:border-rose-200 text-xs font-medium rounded-lg transition-colors cursor-pointer disabled:opacity-40"
             >
               Clear Grid
             </button>
             <button
               onClick={handleSaveTimetable}
               disabled={uploadingTimetable}
-              className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer disabled:opacity-50"
+              className="px-4 py-1.5 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white text-xs font-medium rounded-lg shadow-2xs transition-colors cursor-pointer disabled:opacity-40"
             >
               {uploadingTimetable ? "Saving..." : "Save Timetable"}
             </button>
@@ -107,15 +108,15 @@ export default function TimetableEditorView({
       </div>
 
       {!selectedClass ? (
-        <div className="p-12 text-center text-slate-400 font-medium">
-          <Info className="h-8 w-8 mx-auto mb-3 text-slate-350" />
-          Please select a department and class from the sidebar first to manage the timetable.
+        <div className="p-12 text-center text-slate-400 text-xs font-medium">
+          <Info className="h-6 w-6 mx-auto mb-2 text-slate-350" />
+          Select a department and class from the sidebar to inspect or edit the timetable.
         </div>
       ) : (
         <>
           {/* Mobile Day Selector & Period Inputs */}
           <div className="block sm:hidden space-y-4">
-            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80 items-center justify-between gap-1">
+            <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200/80 items-center justify-between gap-0.5">
               {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((day) => {
                 const isSelected = activeMobileDay === day;
                 const shortName = day.substring(0, 3);
@@ -124,9 +125,9 @@ export default function TimetableEditorView({
                     key={day}
                     type="button"
                     onClick={() => setActiveMobileDay(day)}
-                    className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all text-center ${
+                    className={`flex-1 py-1 text-[11px] font-medium rounded-md transition-all text-center cursor-pointer ${
                       isSelected
-                        ? "bg-white text-orange-600 shadow-sm font-black"
+                        ? "bg-white text-slate-900 shadow-2xs font-semibold"
                         : "text-slate-500 hover:text-slate-800"
                     }`}
                   >
@@ -136,7 +137,7 @@ export default function TimetableEditorView({
               })}
             </div>
 
-            <div className="bg-slate-50/40 border border-slate-150 rounded-xl p-3 space-y-2.5">
+            <div className="bg-slate-50/50 border border-slate-200/80 rounded-lg p-3 space-y-2">
               {Array(7).fill(0).map((_, idx) => {
                 const timings = [
                   "9:00 - 9:50",
@@ -149,15 +150,15 @@ export default function TimetableEditorView({
                 ];
                 const row = timetableGrid[activeMobileDay] || Array(7).fill("");
                 return (
-                  <div key={idx} className="flex items-center gap-3 bg-white p-2.5 border border-slate-200 rounded-xl shadow-xs">
-                    <div className="w-20 shrink-0">
-                      <span className="block text-[10px] font-black text-slate-800 leading-none">Period {idx + 1}</span>
-                      <span className="text-[9px] font-semibold text-slate-400 mt-1 block">{timings[idx]}</span>
+                  <div key={idx} className="flex items-center gap-2.5 bg-white p-2.5 border border-slate-200/80 rounded-lg shadow-2xs">
+                    <div className="w-24 shrink-0">
+                      <span className="block text-[11px] font-medium text-slate-900">Period {idx + 1}</span>
+                      <span className="text-[10px] text-slate-400 mt-0.5 block font-mono">{timings[idx]}</span>
                     </div>
                     <select
                       value={row[idx] || ""}
                       onChange={(e) => handleCellChange(activeMobileDay, idx, e.target.value)}
-                      className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-805 outline-none focus:border-orange-500"
+                      className="flex-1 bg-white border border-slate-200 rounded-md px-2.5 py-1 text-xs font-medium text-slate-800 outline-none focus:border-slate-800"
                     >
                       <option value="">-- Free Period --</option>
                       {courseMappings.map((map) => (
@@ -173,36 +174,36 @@ export default function TimetableEditorView({
           </div>
 
           {/* Desktop Table View */}
-          <div className="hidden sm:block overflow-x-auto border border-slate-200 rounded-xl bg-slate-50/20 p-2 lg:p-4">
-            <table className="w-full border-collapse text-left bg-white rounded-lg shadow-sm overflow-hidden border border-slate-200">
+          <div className="hidden sm:block overflow-x-auto border border-slate-200/80 rounded-xl bg-white">
+            <table className="w-full border-collapse text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-100 text-slate-700 text-xs font-bold uppercase tracking-wider select-none">
-                  <th className="p-4 w-32 border-r border-slate-200">Day</th>
-                  <th className="p-4 text-center border-r border-slate-200">Period 1<br/><span className="text-[10px] text-slate-440 normal-case font-normal">9:00 - 9:50</span></th>
-                  <th className="p-4 text-center border-r border-slate-200">Period 2<br/><span className="text-[10px] text-slate-440 normal-case font-normal">9:50 - 10:40</span></th>
-                  <th className="p-4 text-center border-r border-slate-200">Period 3<br/><span className="text-[10px] text-slate-440 normal-case font-normal">10:55 - 11:45</span></th>
-                  <th className="p-4 text-center border-r border-slate-200">Period 4<br/><span className="text-[10px] text-slate-440 normal-case font-normal">11:45 - 12:35</span></th>
-                  <th className="p-4 text-center border-r border-slate-200">Period 5<br/><span className="text-[10px] text-slate-440 normal-case font-normal">1:25 - 2:15</span></th>
-                  <th className="p-4 text-center border-r border-slate-200">Period 6<br/><span className="text-[10px] text-slate-440 normal-case font-normal">2:15 - 3:05</span></th>
-                  <th className="p-4 text-center">Period 7<br/><span className="text-[10px] text-slate-440 normal-case font-normal">3:20 - 4:10</span></th>
+                <tr className="border-b border-slate-200/80 bg-slate-50/50 text-slate-500 text-[11px] font-medium uppercase tracking-wider select-none">
+                  <th className="p-3 w-28 border-r border-slate-200/80">Day</th>
+                  <th className="p-3 text-center border-r border-slate-200/80">Period 1<br/><span className="text-[10px] text-slate-400 normal-case font-mono">9:00 - 9:50</span></th>
+                  <th className="p-3 text-center border-r border-slate-200/80">Period 2<br/><span className="text-[10px] text-slate-400 normal-case font-mono">9:50 - 10:40</span></th>
+                  <th className="p-3 text-center border-r border-slate-200/80">Period 3<br/><span className="text-[10px] text-slate-400 normal-case font-mono">10:55 - 11:45</span></th>
+                  <th className="p-3 text-center border-r border-slate-200/80">Period 4<br/><span className="text-[10px] text-slate-400 normal-case font-mono">11:45 - 12:35</span></th>
+                  <th className="p-3 text-center border-r border-slate-200/80">Period 5<br/><span className="text-[10px] text-slate-400 normal-case font-mono">1:25 - 2:15</span></th>
+                  <th className="p-3 text-center border-r border-slate-200/80">Period 6<br/><span className="text-[10px] text-slate-400 normal-case font-mono">2:15 - 3:05</span></th>
+                  <th className="p-3 text-center">Period 7<br/><span className="text-[10px] text-slate-400 normal-case font-mono">3:20 - 4:10</span></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-sm">
+              <tbody className="divide-y divide-slate-100">
                 {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((day) => {
                   const row = timetableGrid[day] || Array(7).fill("");
                   return (
                     <tr key={day} className="hover:bg-slate-50/50">
-                      <td className="p-4 font-bold text-slate-700 bg-slate-50 border-r border-slate-200 uppercase text-xs">
+                      <td className="p-3 font-semibold text-slate-800 bg-slate-50/30 border-r border-slate-200/80">
                         {day}
                       </td>
                       {Array(7).fill(0).map((_, idx) => (
-                        <td key={idx} className="p-2 border-r border-slate-200">
+                        <td key={idx} className="p-1.5 border-r border-slate-200/80">
                           <select
                             value={row[idx] || ""}
                             onChange={(e) => handleCellChange(day, idx, e.target.value)}
-                            className="w-full text-center bg-transparent border-0 border-b border-transparent focus:border-orange-500 outline-none text-xs font-bold text-slate-800 p-1"
+                            className="w-full text-center bg-white border border-slate-200/60 rounded focus:border-slate-800 outline-none text-xs font-medium text-slate-800 py-1 transition-colors"
                           >
-                            <option value="">-</option>
+                            <option value="">·</option>
                             {courseMappings.map((map) => (
                               <option key={map.abbreviation} value={map.abbreviation}>
                                 {map.abbreviation}
@@ -219,33 +220,34 @@ export default function TimetableEditorView({
           </div>
 
           {/* Course Details & Faculty Mapping Editor */}
-          <div className="border border-slate-200 rounded-xl bg-slate-50/20 p-4 lg:p-6 space-y-4 mt-4 lg:mt-6">
-            <div className="flex items-center justify-between border-b border-slate-150 pb-3">
+          <div className="border border-slate-200/80 rounded-xl bg-slate-50/30 p-4 lg:p-5 space-y-3.5 mt-4">
+            <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
               <div>
-                <h4 className="font-bold text-sm text-slate-800">Course & Faculty Mapping</h4>
-                <p className="text-[11px] text-slate-400 font-semibold">Map abbreviations used in the grid above to their full names and handling faculty members.</p>
+                <h4 className="font-semibold text-xs text-slate-900">Course & Faculty Subject Mapping</h4>
+                <p className="text-[11px] text-slate-500">Map timetable subject acronyms to official curriculum course titles and faculty handlers.</p>
               </div>
               <button
                 onClick={() => handleOpenPopup()}
-                className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-600 text-xs font-bold rounded-lg transition-all cursor-pointer"
+                className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium rounded-lg shadow-2xs transition-colors cursor-pointer"
               >
-                + Add Course Map
+                + Map Course
               </button>
             </div>
 
             {courseMappings.length === 0 ? (
-              <p className="text-xs text-slate-400 italic text-center py-4">No course mappings configured. Click "+ Add Course Map" to map abbreviations.</p>
+              <p className="text-xs text-slate-400 italic text-center py-4">No course mappings configured. Click "+ Map Course" to link abbreviations.</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {courseMappings.map((map, index) => (
-                  <div key={index} className="flex flex-row items-center justify-between bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
+                  <div key={index} className="flex flex-row items-center justify-between bg-white p-3 border border-slate-200/80 rounded-lg shadow-2xs">
                     <div className="flex flex-col">
-                      <span className="font-bold text-xs text-slate-800">
-                        {map.abbreviation} - {map.name} <span className="text-slate-400 font-normal">({map.facultyName || "No Staff"})</span>
+                      <span className="font-medium text-xs text-slate-900">
+                        <span className="font-mono font-semibold text-slate-950 mr-1.5">{map.abbreviation}</span>
+                        {map.name} <span className="text-slate-400 font-normal">({map.facultyName || "Unassigned"})</span>
                       </span>
                       {map.isElective && (
-                        <span className="text-[10px] text-orange-500 font-semibold mt-1">
-                          OR {map.name2} <span className="text-orange-400 font-normal">({map.facultyName2 || "No Staff"})</span>
+                        <span className="text-[11px] text-slate-500 font-normal mt-0.5">
+                          Alternative Option: {map.name2} <span className="text-slate-400">({map.facultyName2 || "Unassigned"})</span>
                         </span>
                       )}
                     </div>
@@ -298,7 +300,7 @@ export default function TimetableEditorView({
                       return updated;
                     });
                   }}
-                  className="w-4 h-4 rounded text-orange-500 focus:ring-orange-500 border-slate-300"
+                  className="w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300"
                 />
                 Mark as Elective (2 Subjects/Staff)
               </label>
@@ -389,7 +391,7 @@ export default function TimetableEditorView({
               <button 
                 onClick={handleSavePopup} 
                 disabled={!draftMapping.abbreviation || !draftMapping.name || !draftMapping.facultyId || (draftMapping.isElective && (!draftMapping.name2 || !draftMapping.facultyId2))}
-                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-600 text-white text-xs font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Save Mapping
               </button>

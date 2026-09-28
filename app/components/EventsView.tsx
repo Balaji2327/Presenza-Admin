@@ -189,30 +189,36 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+      {/* Search and Action Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white border border-slate-200/80 p-4 sm:p-5 rounded-xl shadow-2xs">
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search events..."
+            placeholder="Search events or tokens..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-orange-500 transition-colors"
+            className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3.5 py-2 text-xs font-normal outline-none focus:border-slate-800 transition-colors placeholder:text-slate-400"
           />
         </div>
         <button
           onClick={openCreateModal}
-          className="w-full sm:w-auto px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl shadow-md shadow-orange-500/20 transition-all cursor-pointer flex items-center justify-center gap-2"
+          className="px-4 py-2 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white text-xs font-medium rounded-lg shadow-2xs transition-colors cursor-pointer flex items-center justify-center gap-2"
         >
           <Plus className="h-4 w-4" />
-          Create Event
+          <span>New Event / Token</span>
         </button>
       </div>
 
       {loading ? (
-        <div className="text-center p-12 text-slate-400 font-bold">Loading events...</div>
+        <div className="text-center py-16 text-slate-400 text-xs font-medium bg-white border border-slate-200/80 rounded-xl">
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-slate-200 border-t-slate-800 mx-auto mb-2" />
+          Loading scheduled events...
+        </div>
       ) : filteredEvents.length === 0 ? (
-        <div className="text-center p-12 text-slate-400 font-bold bg-white border border-slate-200 rounded-2xl">No events found.</div>
+        <div className="text-center py-16 text-slate-400 text-xs font-medium bg-white border border-slate-200/80 rounded-xl">
+          No events found. Click "New Event / Token" above to schedule an academic session or attendance token.
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredEvents.map(evt => {
@@ -220,66 +226,67 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
               .map(id => faculties.find(f => f.id === id)?.name || id)
               .join(", ");
             return (
-              <div key={evt.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-1 h-full bg-orange-400" />
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-extrabold text-lg text-slate-800 leading-tight">{evt.name}</h3>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => openEditModal(evt)} className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg cursor-pointer">
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => handleDeleteEvent(evt.id)} className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg cursor-pointer">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+              <div key={evt.id} className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-2xs hover:border-slate-300 transition-colors flex flex-col justify-between group">
+                <div>
+                  <div className="flex justify-between items-start gap-2 mb-2">
+                    <h3 className="font-semibold text-sm text-slate-900 leading-snug">{evt.name}</h3>
+                    <div className="flex gap-1 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => openEditModal(evt)} className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors cursor-pointer" title="Edit">
+                        <Edit className="h-3.5 w-3.5" />
+                      </button>
+                      <button onClick={() => handleDeleteEvent(evt.id)} className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" title="Delete">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {evt.description && (
+                    <p className="text-xs text-slate-500 mb-3.5 line-clamp-2 leading-relaxed">{evt.description}</p>
+                  )}
+
+                  <div className="space-y-1.5 text-xs text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span className="font-mono text-[11px] text-slate-700">
+                        {evt.startDate} 
+                        {evt.startDate !== evt.endDate && (
+                          <><span className="text-slate-400 mx-1">→</span>{evt.endDate}</>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span>{evt.assignedFacultyIds?.length || 0} Faculty Assigned</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span>{evt.assignedStudents?.length || 0} Students Eligible</span>
+                    </div>
                   </div>
                 </div>
-                
-                {evt.description && (
-                  <p className="text-xs text-slate-500 mb-4 line-clamp-2">{evt.description}</p>
-                )}
 
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
-                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                    <span>
-                      {evt.startDate} 
-                      {evt.startDate !== evt.endDate && (
-                        <><span className="text-slate-400 font-normal mx-0.5">to</span> {evt.endDate}</>
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
-                    <User className="h-3.5 w-3.5 text-slate-400" />
-                    <span>Faculty: <span className="font-bold text-slate-700">{evt.assignedFacultyIds?.length || 0} Assigned</span></span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
-                    <Users className="h-3.5 w-3.5 text-slate-400" />
-                    <span>Students Assigned: <span className="font-bold text-slate-700">{evt.assignedStudents.length}</span></span>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-1.5 mt-auto pt-3 border-t border-slate-100">
+                <div className="flex flex-wrap gap-1.5 mt-4 pt-3 border-t border-slate-100">
                   {evt.durationType && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-bold rounded-md uppercase tracking-wider">
+                    <span className="inline-flex items-center px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-medium rounded uppercase tracking-wider">
                       {evt.durationType.replace('_', ' ')}
                     </span>
                   )}
                   {evt.eventType && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-600 border border-purple-200 text-[10px] font-bold rounded-md uppercase tracking-wider">
+                    <span className="inline-flex items-center px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-medium rounded uppercase tracking-wider">
                       {evt.eventType}
                     </span>
                   )}
                   {evt.selectedPeriods && evt.selectedPeriods.length > 0 ? (
                     evt.selectedPeriods.map((p, i) => (
-                      <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-600 border border-orange-200 text-[10px] font-bold rounded-md">
-                        <Clock className="h-3 w-3" />
+                      <span key={i} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-orange-50 text-orange-700 border border-orange-200/60 text-[10px] font-mono rounded">
+                        <Clock className="h-2.5 w-2.5" />
                         P{p}
                       </span>
                     ))
                   ) : (
                     evt.timeSlots?.map((ts, i) => (
-                      <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-md">
-                        <Clock className="h-3 w-3" />
+                      <span key={i} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-mono rounded">
+                        <Clock className="h-2.5 w-2.5" />
                         {ts.startTime} - {ts.endTime}
                       </span>
                     ))
@@ -322,7 +329,7 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
                           onClick={() => setEventType('event')}
                           className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
                             eventType === 'event'
-                              ? 'bg-orange-500 text-white shadow-sm'
+                              ? 'bg-orange-600 text-white shadow-sm'
                               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                           }`}
                         >
@@ -333,7 +340,7 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
                           onClick={() => setEventType('token')}
                           className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
                             eventType === 'token'
-                              ? 'bg-orange-500 text-white shadow-sm'
+                              ? 'bg-orange-600 text-white shadow-sm'
                               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                           }`}
                         >
@@ -414,7 +421,7 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
                               }}
                               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                                 isSelected 
-                                  ? 'bg-orange-500 text-white shadow-sm' 
+                                  ? 'bg-orange-600 text-white shadow-sm' 
                                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                               }`}
                             >
@@ -468,7 +475,7 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
                               }`}
                             >
                               <span className={`text-xs font-bold ${isSelected ? "text-orange-700" : "text-slate-700"}`}>{f.name} <span className="font-normal text-[10px] text-slate-500">({f.department})</span></span>
-                              <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${isSelected ? "bg-orange-500 border-orange-500" : "border-slate-300"}`}>
+                              <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${isSelected ? "bg-orange-600 border-orange-600" : "border-slate-300"}`}>
                                 {isSelected && <CheckCircle className="h-3 w-3 text-white" />}
                               </div>
                             </div>
@@ -482,7 +489,7 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
                     <div className="flex items-center justify-between border-b border-slate-100 pb-1">
                       <h3 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Assign Students ({assignedStudents.length})</h3>
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => setAssignedStudents(students.map(s => s.id))} className="text-[10px] font-bold text-orange-500 hover:text-orange-600 cursor-pointer">Select All</button>
+                        <button type="button" onClick={() => setAssignedStudents(students.map(s => s.id))} className="text-[10px] font-bold text-orange-600 hover:text-orange-600 cursor-pointer">Select All</button>
                         <span className="text-slate-300">|</span>
                         <button type="button" onClick={() => setAssignedStudents([])} className="text-[10px] font-bold text-rose-500 hover:text-rose-600 cursor-pointer">Clear</button>
                       </div>
@@ -514,7 +521,7 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
                               <p className={`text-xs font-bold ${isSelected ? "text-orange-700" : "text-slate-700"}`}>{student.name}</p>
                               <p className="text-[10px] font-mono text-slate-500">{student.id} • {student.department}</p>
                             </div>
-                            <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${isSelected ? "bg-orange-500 border-orange-500" : "border-slate-300"}`}>
+                            <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${isSelected ? "bg-orange-600 border-orange-600" : "border-slate-300"}`}>
                               {isSelected && <CheckCircle className="h-3 w-3 text-white" />}
                             </div>
                           </div>
@@ -535,7 +542,7 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
               <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2 border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-100 transition-colors cursor-pointer">
                 Cancel
               </button>
-              <button form="event-form" type="submit" className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl shadow-md shadow-orange-500/20 transition-all cursor-pointer">
+              <button form="event-form" type="submit" className="px-6 py-2 bg-orange-600 hover:bg-orange-600 text-white text-sm font-bold rounded-xl shadow-md shadow-orange-500/20 transition-all cursor-pointer">
                 Save Event
               </button>
             </div>

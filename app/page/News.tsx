@@ -103,106 +103,126 @@ export default function News({ showPopup, showConfirm }: NewsProps) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 lg:space-y-6 animate-fade-in">
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
-            <Newspaper className="h-4 w-4 text-orange-500" />
-            Post New News
-          </h3>
+    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+      {/* Create Announcement Card */}
+      <div className="bg-white border border-slate-200/80 rounded-xl shadow-2xs overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/40">
+          <div className="flex items-center gap-2">
+            <Newspaper className="h-4 w-4 text-slate-700" />
+            <h2 className="text-xs font-semibold text-slate-900">
+              Publish Campus Announcement
+            </h2>
+          </div>
+          <span className="text-[11px] text-slate-400 font-normal">Real-time broadcast to mobile apps</span>
         </div>
-        <form onSubmit={handleAddNews} className="p-4 lg:p-6 space-y-4">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Title *</label>
+
+        <form onSubmit={handleAddNews} className="p-5 sm:p-6 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div className="sm:col-span-2 space-y-1.5">
+              <label className="block text-xs font-medium text-slate-700">Headline Title</label>
               <input
                 type="text"
-                placeholder="e.g. End Semester Exams Schedule"
+                placeholder="e.g. End Semester Examinations Schedule & Venues"
                 value={newsTitle}
                 onChange={(e) => setNewsTitle(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-bold"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-800 transition-colors placeholder:text-slate-400"
                 required
               />
             </div>
-            <div className="w-1/3">
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Type *</label>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-slate-700">Display Priority</label>
               <select
                 value={newsType}
                 onChange={(e) => setNewsType(e.target.value as "pinned" | "regular")}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-500"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:border-slate-800 transition-colors cursor-pointer"
               >
-                <option value="regular">Regular News</option>
-                <option value="pinned">Pinned News</option>
+                <option value="regular">Standard Bulletin</option>
+                <option value="pinned">Pinned (High Priority)</option>
               </select>
             </div>
           </div>
-          <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Content *</label>
+
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-slate-700">Announcement Content</label>
             <textarea
-              placeholder="Write the news content here..."
+              placeholder="Provide complete details, dates, instructions, or venue information..."
               value={newsContent}
               onChange={(e) => setNewsContent(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none focus:border-orange-500 font-medium min-h-[120px] resize-y"
+              className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs font-normal text-slate-900 outline-none focus:border-slate-800 transition-colors placeholder:text-slate-400 min-h-[110px] resize-y leading-relaxed"
               required
             />
           </div>
-          <div className="flex justify-end pt-2">
+
+          <div className="flex justify-end pt-1">
             <button
               type="submit"
               disabled={addingNews}
-              className={`px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 transition-all cursor-pointer ${
-                addingNews ? "opacity-70 cursor-not-allowed" : ""
+              className={`px-4 py-2 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white text-xs font-medium rounded-lg shadow-2xs transition-colors cursor-pointer ${
+                addingNews ? "opacity-60 cursor-not-allowed" : ""
               }`}
             >
-              {addingNews ? "Posting..." : "Post News"}
+              {addingNews ? "Publishing..." : "Post Announcement"}
             </button>
           </div>
         </form>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100">
-          <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
-            <Layers className="h-4 w-4 text-slate-400" />
-            Published News
-          </h3>
+      {/* Bulletins List */}
+      <div className="bg-white border border-slate-200/80 rounded-xl shadow-2xs overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/40">
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-slate-500" />
+            <h3 className="text-xs font-semibold text-slate-900">
+              Published Bulletins ({newsList.length})
+            </h3>
+          </div>
         </div>
-        <div className="p-6">
+
+        <div className="p-5 sm:p-6">
           {loadingNews ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
+            <div className="flex flex-col items-center justify-center py-10 gap-2">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-slate-200 border-t-slate-800" />
+              <p className="text-xs text-slate-400">Loading campus bulletins...</p>
             </div>
           ) : newsList.length === 0 ? (
-            <div className="text-center py-8 text-slate-400 text-sm font-semibold">
-              No news published yet.
+            <div className="text-center py-10 text-slate-400 text-xs font-medium">
+              No bulletins published yet. Post an announcement using the form above.
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {newsList.map((news) => (
                 <div
                   key={news.id}
-                  className="p-4 border border-slate-100 bg-slate-50/50 rounded-xl flex flex-col sm:flex-row gap-4 justify-between items-start"
+                  className="p-4 border border-slate-200/80 rounded-lg hover:border-slate-300 transition-colors flex flex-col sm:flex-row gap-3.5 justify-between items-start bg-white"
                 >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="text-sm font-bold text-slate-800">{news.title}</h4>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h4 className="text-xs font-semibold text-slate-900">{news.title}</h4>
                       <span
-                        className={`px-2 py-1 rounded text-[10px] font-bold ${
-                          news.type === "pinned" ? "bg-rose-100 text-rose-700" : "bg-blue-100 text-blue-700"
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium ${
+                          news.type === "pinned"
+                            ? "bg-orange-50 text-orange-700 border border-orange-200"
+                            : "bg-slate-100 text-slate-600"
                         }`}
                       >
-                        {news.type === "pinned" ? "Pinned" : "Regular"}
+                        {news.type === "pinned" ? "Pinned" : "Standard"}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500 whitespace-pre-wrap">{news.content}</p>
-                    <p className="text-[10px] text-slate-400 mt-2 font-semibold">
-                      {new Date(news.createdAt).toLocaleString()}
+                    <p className="text-xs text-slate-600 whitespace-pre-wrap leading-relaxed">{news.content}</p>
+                    <p className="text-[11px] text-slate-400 mt-2 font-mono">
+                      {new Date(news.createdAt).toLocaleString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </p>
                   </div>
                   <button
                     onClick={() => handleDeleteNews(news.id)}
-                    className="p-2 bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-500 border border-slate-200 hover:border-rose-200 rounded-lg transition-colors cursor-pointer shrink-0"
-                    title="Delete News"
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer shrink-0"
+                    title="Remove bulletin"
                   >
                     <X className="h-4 w-4" />
                   </button>
