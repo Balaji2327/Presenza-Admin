@@ -1216,7 +1216,7 @@ Return strictly a JSON array of slots:
           "departments",
           "all_departments",
           targetDept.id,
-          "clasees",
+          "classes",
           cls.name
         );
 

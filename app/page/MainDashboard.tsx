@@ -10,7 +10,8 @@ import TimetableEditorView from "../components/TimetableEditorView";
 import EventsView from "../components/EventsView";
 import TimetableGeneratorView from "../components/TimetableGeneratorView";
 import ExcelJS from "exceljs";
-import { db, storage } from "../firebase";
+import { db, storage, auth } from "../firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import {
   collection,
   getDocs,
@@ -284,7 +285,7 @@ export default function AdminDashboard() {
           "departments",
           "all_departments",
           deptId,
-          "clasees",
+          "classes",
           selectedClass
         );
         const docSnap = await getDoc(classDocRef);
@@ -326,7 +327,7 @@ export default function AdminDashboard() {
         "departments",
         "all_departments",
         selectedDept.id,
-        "clasees",
+        "classes",
         selectedClass
       );
       const docSnap = await getDoc(classDocRef);
@@ -574,14 +575,14 @@ export default function AdminDashboard() {
         classes: updatedClasses
       });
 
-      // 2. Create the class document in the 'clasees' subcollection
+      // 2. Create the class document in the 'classes' subcollection
       const classDocRef = doc(
         db,
         "colleges",
         "departments",
         "all_departments",
         targetDeptId,
-        "clasees",
+        "classes",
         classNameClean
       );
       await setDoc(classDocRef, {
@@ -686,7 +687,7 @@ export default function AdminDashboard() {
           }
 
           // 2. Delete class document
-          const classDocRef = doc(db, "colleges", "departments", "all_departments", deptId, "clasees", className);
+          const classDocRef = doc(db, "colleges", "departments", "all_departments", deptId, "classes", className);
           await deleteDoc(classDocRef);
           
           if (selectedClass === className && selectedDept?.id === deptId) {
@@ -744,9 +745,9 @@ export default function AdminDashboard() {
         }));
       }
 
-      // 2. Update/Create the class document in 'clasees' subcollection
-      const oldClassDocRef = doc(db, "colleges", "departments", "all_departments", deptId, "clasees", oldClassName);
-      const newClassDocRef = doc(db, "colleges", "departments", "all_departments", deptId, "clasees", newClassName);
+      // 2. Update/Create the class document in 'classes' subcollection
+      const oldClassDocRef = doc(db, "colleges", "departments", "all_departments", deptId, "classes", oldClassName);
+      const newClassDocRef = doc(db, "colleges", "departments", "all_departments", deptId, "classes", newClassName);
       
       const oldClassSnap = await getDoc(oldClassDocRef);
       const classData = oldClassSnap.exists() ? oldClassSnap.data() : {};
@@ -821,13 +822,17 @@ export default function AdminDashboard() {
     }
   };
 
-  // Fetch data on login status
+  // Listen to Firebase Auth state
   useEffect(() => {
-    const logged = localStorage.getItem("adminLoggedIn");
-    if (logged === "true") {
-      setIsLoggedIn(true);
-    }
-    setCheckingAuth(false);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(false);
+      }
+      setCheckingAuth(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -1037,7 +1042,7 @@ export default function AdminDashboard() {
         "departments",
         "all_departments",
         selectedDept.id,
-        "clasees",
+        "classes",
         selectedClass
       );
       const docSnap = await getDoc(classDocRef);
@@ -1156,7 +1161,7 @@ export default function AdminDashboard() {
         "departments",
         "all_departments",
         selectedDept.id,
-        "clasees",
+        "classes",
         selectedClass
       );
       
@@ -1213,7 +1218,7 @@ export default function AdminDashboard() {
         "departments",
         "all_departments",
         selectedDept.id,
-        "clasees",
+        "classes",
         selectedClass
       );
       
@@ -1544,10 +1549,14 @@ export default function AdminDashboard() {
 
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
-    localStorage.setItem("adminLoggedIn", "true");
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error("Signout error:", err);
+    }
     setIsLoggedIn(false);
     localStorage.removeItem("adminLoggedIn");
   };
