@@ -221,8 +221,13 @@ export default function AdminDashboard() {
   // Semesters list
   const semesters = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
 
-  // Fetch Departments on Mount
+  // Fetch Departments once authenticated
   useEffect(() => {
+    if (!isLoggedIn) {
+      setLoadingDepts(false);
+      return;
+    }
+
     let active = true;
     // Show a warning if it takes more than 5 seconds to load
     const timer = setTimeout(() => {
@@ -266,7 +271,7 @@ export default function AdminDashboard() {
       active = false;
       clearTimeout(timer);
     };
-  }, []);
+  }, [isLoggedIn]);
 
 
 
