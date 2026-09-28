@@ -1032,42 +1032,66 @@ Return strictly a JSON array of slots:
       let generatedWithAI = false;
       let usedModel = "";
 
+      let parsingErrorDetail = "";
       const aiResponse = await callGemini(promptToSend, options?.userInstructions);
       if (aiResponse.text) {
         try {
-          let cleaned = aiResponse.text
-            .replace(/```json/gi, "")
-            .replace(/```/g, "")
-            .trim();
+          let raw = aiResponse.text.trim();
+          let parsedData: any = null;
 
-          if (cleaned.startsWith("{") && cleaned.includes('"candidates"')) {
+          // 1. Direct parse attempt first
+          try {
+            parsedData = JSON.parse(raw);
+          } catch {
+            // 2. Try removing markdown code blocks
+            let cleaned = raw
+              .replace(/^```(?:json)?\s*/i, "")
+              .replace(/\s*```$/i, "")
+              .trim();
+
             try {
-              const parsedEnvelope = JSON.parse(cleaned);
-              const partText = parsedEnvelope?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-              if (partText) cleaned = partText.replace(/```json/gi, "").replace(/```/g, "").trim();
-            } catch (e) {}
+              parsedData = JSON.parse(cleaned);
+            } catch {
+              // 3. Try slicing between first [ and last ]
+              const firstBracket = cleaned.indexOf("[");
+              const lastBracket = cleaned.lastIndexOf("]");
+              if (firstBracket !== -1 && lastBracket > firstBracket) {
+                try {
+                  parsedData = JSON.parse(cleaned.slice(firstBracket, lastBracket + 1));
+                } catch {
+                  // Try fixing trailing commas
+                  const fixed = cleaned.slice(firstBracket, lastBracket + 1).replace(/,\s*([\]}])/g, "$1");
+                  parsedData = JSON.parse(fixed);
+                }
+              } else {
+                // Slicing between { and }
+                const firstBrace = cleaned.indexOf("{");
+                const lastBrace = cleaned.lastIndexOf("}");
+                if (firstBrace !== -1 && lastBrace > firstBrace) {
+                  parsedData = JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
+                }
+              }
+            }
           }
 
-          cleaned = cleaned.replace(/,\s*([\]}])/g, "$1");
-          const start = cleaned.indexOf("[");
-          let end = cleaned.lastIndexOf("]");
-
-          if (start !== -1 && end !== -1 && end > start) {
-            slots = JSON.parse(cleaned.substring(start, end + 1));
-          } else {
-            slots = JSON.parse(cleaned);
+          // If parsedData is an object with an array property (e.g. { timetable: [...] } or { schedule: [...] } or { slots: [...] })
+          if (parsedData && !Array.isArray(parsedData) && typeof parsedData === "object") {
+            const arrayKey = Object.keys(parsedData).find((k) => Array.isArray(parsedData[k]));
+            if (arrayKey) {
+              parsedData = parsedData[arrayKey];
+            }
           }
 
-          if (Array.isArray(slots) && slots.length > 0) {
-            slots = slots
+          if (Array.isArray(parsedData) && parsedData.length > 0) {
+            slots = parsedData
               .filter(
-                (s) =>
+                (s: any) =>
                   s &&
                   s.subject &&
                   String(s.subject).toUpperCase() !== "LUNCH" &&
                   String(s.type).toUpperCase() !== "LUNCH"
               )
-              .map((s) => {
+              .map((s: any) => {
                 const targetCls = validClasses.find(
                   (c) => c.id === s.classId || c.name.toLowerCase() === String(s.className || "").toLowerCase()
                 );
@@ -1089,9 +1113,12 @@ Return strictly a JSON array of slots:
               generatedWithAI = true;
               usedModel = aiResponse.model || "Gemini AI";
             }
+          } else {
+            parsingErrorDetail = "AI returned JSON, but it did not contain a recognizable list of timetable slots.";
           }
-        } catch (parseErr) {
+        } catch (parseErr: any) {
           console.error("Failed to parse AI timetable response:", parseErr);
+          parsingErrorDetail = `Failed to parse AI response: ${parseErr?.message || "Invalid JSON format"}`;
         }
       }
 
@@ -1099,7 +1126,8 @@ Return strictly a JSON array of slots:
         if (options?.requireAI) {
           setAiErrorMsg(
             aiResponse.error ||
-              "Gemini AI was unable to return a valid structured schedule. Check API key permissions or try with the Quick Solver."
+              parsingErrorDetail ||
+              "Gemini AI was unable to return a valid structured schedule. Please try again or use the Quick Solver."
           );
           setIsProcessing(false);
           setPipelineStage("");
