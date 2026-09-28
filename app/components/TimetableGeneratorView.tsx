@@ -1036,49 +1036,88 @@ Return strictly a JSON array of slots:
       const aiResponse = await callGemini(promptToSend, options?.userInstructions);
       if (aiResponse.text) {
         try {
-          let raw = aiResponse.text.trim();
-          let parsedData: any = null;
+          const raw = aiResponse.text.trim();
+          let parsedData: any[] = [];
 
           // 1. Direct parse attempt first
           try {
-            parsedData = JSON.parse(raw);
+            const direct = JSON.parse(raw);
+            if (Array.isArray(direct)) {
+              parsedData = direct;
+            } else if (typeof direct === "object" && direct !== null) {
+              const arrayKey = Object.keys(direct).find((k) => Array.isArray(direct[k]));
+              if (arrayKey) parsedData = direct[arrayKey];
+            }
           } catch {
-            // 2. Try removing markdown code blocks
-            let cleaned = raw
-              .replace(/^```(?:json)?\s*/i, "")
-              .replace(/\s*```$/i, "")
-              .trim();
+            // direct parse failed (e.g. multiple arrays or text around JSON)
+          }
 
-            try {
-              parsedData = JSON.parse(cleaned);
-            } catch {
-              // 3. Try slicing between first [ and last ]
-              const firstBracket = cleaned.indexOf("[");
-              const lastBracket = cleaned.lastIndexOf("]");
-              if (firstBracket !== -1 && lastBracket > firstBracket) {
+          // 2. If direct parse didn't get an array, match all markdown JSON blocks: ```json ... ```
+          if (parsedData.length === 0) {
+            const mdBlocks = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/gi);
+            if (mdBlocks) {
+              for (const b of mdBlocks) {
+                const cleanB = b.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
                 try {
-                  parsedData = JSON.parse(cleaned.slice(firstBracket, lastBracket + 1));
+                  const p = JSON.parse(cleanB);
+                  if (Array.isArray(p)) parsedData.push(...p);
+                  else if (typeof p === "object" && p !== null) {
+                    const k = Object.keys(p).find((key) => Array.isArray(p[key]));
+                    if (k) parsedData.push(...p[k]);
+                  }
+                } catch {}
+              }
+            }
+          }
+
+          // 3. Match all individual JSON arrays: [ ... ]
+          if (parsedData.length === 0) {
+            const arrayMatches = raw.match(/\[\s*\{[\s\S]*?\}\s*\]/g);
+            if (arrayMatches) {
+              for (const arrStr of arrayMatches) {
+                try {
+                  const p = JSON.parse(arrStr);
+                  if (Array.isArray(p)) parsedData.push(...p);
                 } catch {
-                  // Try fixing trailing commas
-                  const fixed = cleaned.slice(firstBracket, lastBracket + 1).replace(/,\s*([\]}])/g, "$1");
-                  parsedData = JSON.parse(fixed);
-                }
-              } else {
-                // Slicing between { and }
-                const firstBrace = cleaned.indexOf("{");
-                const lastBrace = cleaned.lastIndexOf("}");
-                if (firstBrace !== -1 && lastBrace > firstBrace) {
-                  parsedData = JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
+                  try {
+                    const fixed = arrStr.replace(/,\s*([\]}])/g, "$1");
+                    const p = JSON.parse(fixed);
+                    if (Array.isArray(p)) parsedData.push(...p);
+                  } catch {}
                 }
               }
             }
           }
 
-          // If parsedData is an object with an array property (e.g. { timetable: [...] } or { schedule: [...] } or { slots: [...] })
-          if (parsedData && !Array.isArray(parsedData) && typeof parsedData === "object") {
-            const arrayKey = Object.keys(parsedData).find((k) => Array.isArray(parsedData[k]));
-            if (arrayKey) {
-              parsedData = parsedData[arrayKey];
+          // 4. Match single outer array between first [ and last ]
+          if (parsedData.length === 0) {
+            const firstBracket = raw.indexOf("[");
+            const lastBracket = raw.lastIndexOf("]");
+            if (firstBracket !== -1 && lastBracket > firstBracket) {
+              const sliceStr = raw.slice(firstBracket, lastBracket + 1);
+              try {
+                const p = JSON.parse(sliceStr);
+                if (Array.isArray(p)) parsedData = p;
+              } catch {
+                try {
+                  const fixed = sliceStr.replace(/,\s*([\]}])/g, "$1");
+                  const p = JSON.parse(fixed);
+                  if (Array.isArray(p)) parsedData = p;
+                } catch {}
+              }
+            }
+          }
+
+          // 5. Fallback: match individual slot objects: { "day": ..., "period": ... }
+          if (parsedData.length === 0) {
+            const objectMatches = raw.match(/\{[^{}]*?"day"[\s\S]*?\}/g);
+            if (objectMatches) {
+              for (const objStr of objectMatches) {
+                try {
+                  const p = JSON.parse(objStr);
+                  if (p && (p.day || p.period)) parsedData.push(p);
+                } catch {}
+              }
             }
           }
 
@@ -1114,11 +1153,11 @@ Return strictly a JSON array of slots:
               usedModel = aiResponse.model || "Gemini AI";
             }
           } else {
-            parsingErrorDetail = "AI returned JSON, but it did not contain a recognizable list of timetable slots.";
+            parsingErrorDetail = "AI returned text, but could not extract valid timetable slots from it.";
           }
         } catch (parseErr: any) {
           console.error("Failed to parse AI timetable response:", parseErr);
-          parsingErrorDetail = `Failed to parse AI response: ${parseErr?.message || "Invalid JSON format"}`;
+          parsingErrorDetail = `Failed to parse AI response: ${parseErr?.message || "Invalid JSON"}`;
         }
       }
 
