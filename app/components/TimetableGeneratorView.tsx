@@ -880,7 +880,7 @@ export default function TimetableGeneratorView({
           setPipelineStage(options?.isRestructure ? "Restructuring timetable with Gemini AI..." : "Synthesizing schedule with Gemini AI...");
 
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 45000);
+          const timeoutId = setTimeout(() => controller.abort(), 90000);
 
           const resp = await fetch("/api/generate-timetable", {
             method: "POST",
@@ -889,7 +889,7 @@ export default function TimetableGeneratorView({
             body: JSON.stringify({
               prompt: promptText,
               userInstructions: instructions || undefined,
-              preferredModel: "gemini-3.8-flash",
+              preferredModel: "gemini-2.5-flash",
               customApiKey: customApiKey.trim() || undefined,
             }),
           });
@@ -903,6 +903,11 @@ export default function TimetableGeneratorView({
 
           return { error: data.error || `HTTP ${resp.status}: Gemini AI call failed` };
         } catch (err: any) {
+          if (err?.name === "AbortError" || String(err?.message || "").toLowerCase().includes("abort")) {
+            return {
+              error: "AI generation timed out after 90 seconds due to network latency. Please try again or click 'Use Local Solver Instead'.",
+            };
+          }
           return { error: err?.message || "Connection to Gemini AI server timed out" };
         }
       };
