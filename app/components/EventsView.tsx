@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { db } from "../firebase";
-import { collection, doc, getDocs, setDoc, deleteDoc, Timestamp } from "firebase/firestore";
-import { Calendar, Plus, Trash2, Edit, Search, CheckCircle, Clock, Users, User, X } from "lucide-react";
+import { collection, doc, getDocs, getDoc, setDoc, deleteDoc, Timestamp } from "firebase/firestore";
+import { Calendar, Plus, Trash2, Edit, Search, CheckCircle, Clock, Users, User, X, Eye } from "lucide-react";
 
 interface AppEvent {
   id: string;
@@ -53,6 +53,18 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
   
   // Faculty Selection state
   const [facultySearch, setFacultySearch] = useState("");
+
+  // Attendance Detail Modal state
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
+  const [attendanceEvent, setAttendanceEvent] = useState<AppEvent | null>(null);
+  const [attendanceData, setAttendanceData] = useState<{
+    studentId: string;
+    name: string;
+    department: string;
+    dates: { date: string; checkpoints: Record<string, string> }[];
+  }[]>([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [attendanceSearch, setAttendanceSearch] = useState("");
 
   useEffect(() => {
     fetchEvents();
@@ -184,8 +196,71 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
     }
   };
 
+  // Fetch attendance data for a specific event
+  const openAttendanceModal = async (evt: AppEvent) => {
+    setAttendanceEvent(evt);
+    setAttendanceModalOpen(true);
+    setAttendanceLoading(true);
+    setAttendanceSearch("");
+    try {
+      // Generate all dates in the event range (dd-MM-yyyy format used by the mobile app)
+      const eventDates: string[] = [];
+      const start = new Date(evt.startDate);
+      const end = new Date(evt.endDate);
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        eventDates.push(`${dd}-${mm}-${yyyy}`);
+      }
+
+      const studentIds = evt.assignedStudents || [];
+      const periods = evt.selectedPeriods || [];
+
+      // Fetch student names and attendance in parallel
+      const results = await Promise.all(
+        studentIds.map(async (sId) => {
+          // Get student name
+          const stuDoc = await getDoc(doc(db, "colleges", "students", "all_students", sId));
+          const stuData = stuDoc.exists() ? stuDoc.data() : null;
+          const name = stuData?.name || sId;
+          const department = stuData?.department || "";
+          const semester = stuData?.semester || "V";
+
+          // Get attendance doc for the student's semester
+          const attDoc = await getDoc(doc(db, "colleges", "students", "all_students", sId, "attendance", semester));
+          const attData = attDoc.exists() ? attDoc.data() : {};
+
+          const dates = eventDates.map(dateKey => {
+            const dayData = (attData as Record<string, any>)[dateKey] || {};
+            const checkpoints: Record<string, string> = {};
+            for (const p of periods) {
+              const cpKey = `${p}_checkpoint`;
+              checkpoints[`P${p}`] = dayData[cpKey] === 'P' ? 'P' : 'A';
+            }
+            return { date: dateKey, checkpoints };
+          });
+
+          return { studentId: sId, name, department, dates };
+        })
+      );
+
+      results.sort((a, b) => a.name.localeCompare(b.name));
+      setAttendanceData(results);
+    } catch (err: any) {
+      console.error("Error fetching attendance:", err);
+      showPopup("error", "Error", "Failed to load attendance: " + err.message);
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+
   const filteredEvents = events.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const filteredStudents = students.filter(s => s.name.toLowerCase().includes(studentSearch.toLowerCase()) || s.id.toLowerCase().includes(studentSearch.toLowerCase()));
+  const filteredAttendance = attendanceData.filter(s =>
+    s.name.toLowerCase().includes(attendanceSearch.toLowerCase()) ||
+    s.studentId.toLowerCase().includes(attendanceSearch.toLowerCase())
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -226,15 +301,15 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
               .map(id => faculties.find(f => f.id === id)?.name || id)
               .join(", ");
             return (
-              <div key={evt.id} className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-2xs hover:border-slate-300 transition-colors flex flex-col justify-between group">
+              <div key={evt.id} className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-2xs hover:border-slate-300 transition-colors flex flex-col justify-between group cursor-pointer" onClick={() => openAttendanceModal(evt)}>
                 <div>
                   <div className="flex justify-between items-start gap-2 mb-2">
                     <h3 className="font-semibold text-sm text-slate-900 leading-snug">{evt.name}</h3>
                     <div className="flex gap-1 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openEditModal(evt)} className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors cursor-pointer" title="Edit">
+                      <button onClick={(e) => { e.stopPropagation(); openEditModal(evt); }} className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors cursor-pointer" title="Edit">
                         <Edit className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => handleDeleteEvent(evt.id)} className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" title="Delete">
+                      <button onClick={(e) => { e.stopPropagation(); handleDeleteEvent(evt.id); }} className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" title="Delete">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -544,6 +619,152 @@ export default function EventsView({ faculties, students, showPopup, showConfirm
               </button>
               <button form="event-form" type="submit" className="px-6 py-2 bg-orange-600 hover:bg-orange-600 text-white text-sm font-bold rounded-xl shadow-md shadow-orange-500/20 transition-all cursor-pointer">
                 Save Event
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Attendance Detail Modal */}
+      {attendanceModalOpen && attendanceEvent && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-start justify-center bg-slate-900/60 backdrop-blur-sm p-4 sm:p-10 animate-in fade-in duration-200 overflow-y-auto">
+          <div className="my-auto bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-5xl flex flex-col animate-in zoom-in-95 duration-200 max-h-[90vh]">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between shrink-0">
+              <div>
+                <h2 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
+                  <Eye className="h-5 w-5 text-orange-600" />
+                  {attendanceEvent.name} — Attendance
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5 font-mono">
+                  {attendanceEvent.startDate}
+                  {attendanceEvent.startDate !== attendanceEvent.endDate && ` → ${attendanceEvent.endDate}`}
+                  {" · "}{attendanceEvent.assignedStudents?.length || 0} students
+                  {attendanceEvent.selectedPeriods && ` · Periods: ${attendanceEvent.selectedPeriods.map(p => `P${p}`).join(', ')}`}
+                </p>
+              </div>
+              <button onClick={() => setAttendanceModalOpen(false)} className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-500 cursor-pointer transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Search bar */}
+            <div className="px-5 pt-4 pb-2 shrink-0">
+              <div className="relative w-full sm:w-80">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search students..."
+                  value={attendanceSearch}
+                  onChange={(e) => setAttendanceSearch(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3.5 py-2 text-xs font-normal outline-none focus:border-slate-800 transition-colors placeholder:text-slate-400"
+                />
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto min-h-0 p-5 pt-2 custom-scrollbar">
+              {attendanceLoading ? (
+                <div className="text-center py-16 text-slate-400 text-xs font-medium">
+                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-slate-200 border-t-slate-800 mx-auto mb-2" />
+                  Loading attendance data...
+                </div>
+              ) : filteredAttendance.length === 0 ? (
+                <div className="text-center py-16 text-slate-400 text-xs font-medium">
+                  No attendance records found.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  {/* Summary bar */}
+                  {(() => {
+                    let totalChecks = 0;
+                    let presentChecks = 0;
+                    for (const s of attendanceData) {
+                      for (const d of s.dates) {
+                        for (const v of Object.values(d.checkpoints)) {
+                          totalChecks++;
+                          if (v === 'P') presentChecks++;
+                        }
+                      }
+                    }
+                    const pct = totalChecks > 0 ? Math.round((presentChecks / totalChecks) * 100) : 0;
+                    return (
+                      <div className="flex items-center gap-4 mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                          <span className="text-xs font-bold text-slate-700">Present: {presentChecks}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="h-2.5 w-2.5 rounded-full bg-rose-400" />
+                          <span className="text-xs font-bold text-slate-700">Absent: {totalChecks - presentChecks}</span>
+                        </div>
+                        <div className="ml-auto text-xs font-bold text-slate-600">
+                          {pct}% Overall Attendance
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left py-2.5 px-3 font-bold text-slate-500 uppercase tracking-wider text-[10px] sticky left-0 bg-white">#</th>
+                        <th className="text-left py-2.5 px-3 font-bold text-slate-500 uppercase tracking-wider text-[10px] sticky left-8 bg-white min-w-[180px]">Student</th>
+                        <th className="text-left py-2.5 px-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Dept</th>
+                        {attendanceData[0]?.dates.map((d, di) => (
+                          <th key={di} className="text-center py-2.5 px-2 font-bold text-slate-500 uppercase tracking-wider text-[10px]" colSpan={Object.keys(d.checkpoints).length}>
+                            {d.date}
+                          </th>
+                        ))}
+                      </tr>
+                      <tr className="border-b border-slate-100">
+                        <th className="sticky left-0 bg-white"></th>
+                        <th className="sticky left-8 bg-white"></th>
+                        <th></th>
+                        {attendanceData[0]?.dates.map((d, di) =>
+                          Object.keys(d.checkpoints).map((cp, ci) => (
+                            <th key={`${di}-${ci}`} className="text-center py-1.5 px-1 text-[10px] font-mono text-slate-400">
+                              {cp}
+                            </th>
+                          ))
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredAttendance.map((s, idx) => (
+                        <tr key={s.studentId} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                          <td className="py-2 px-3 text-slate-400 font-mono sticky left-0 bg-white">{idx + 1}</td>
+                          <td className="py-2 px-3 sticky left-8 bg-white">
+                            <p className="font-bold text-slate-800 text-xs">{s.name}</p>
+                            <p className="text-[10px] font-mono text-slate-400">{s.studentId}</p>
+                          </td>
+                          <td className="py-2 px-3 text-slate-500 font-medium">{s.department}</td>
+                          {s.dates.map((d, di) =>
+                            Object.values(d.checkpoints).map((val, ci) => (
+                              <td key={`${di}-${ci}`} className="text-center py-2 px-1">
+                                <span className={`inline-flex items-center justify-center h-6 w-6 rounded-md text-[10px] font-extrabold ${
+                                  val === 'P'
+                                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                    : 'bg-rose-50 text-rose-400 border border-rose-100'
+                                }`}>
+                                  {val}
+                                </span>
+                              </td>
+                            ))
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-end shrink-0">
+              <button onClick={() => setAttendanceModalOpen(false)} className="px-5 py-2 border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-100 transition-colors cursor-pointer">
+                Close
               </button>
             </div>
           </div>
