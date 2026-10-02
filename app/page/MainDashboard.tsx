@@ -277,6 +277,10 @@ export default function AdminDashboard() {
 
   const [classCurrentSemester, setClassCurrentSemester] = useState<string>("I");
   const [newClassSemesterInput, setNewClassSemesterInput] = useState<string>("I");
+  const [classSemesterDates, setClassSemesterDates] = useState<Record<string, { startDate?: string; endDate?: string }>>({});
+  const [classSemesterStartDateInput, setClassSemesterStartDateInput] = useState<string>("");
+  const [classSemesterEndDateInput, setClassSemesterEndDateInput] = useState<string>("");
+  const [isEndingSemester, setIsEndingSemester] = useState<boolean>(false);
 
   useEffect(() => {
     if (!selectedClass || !selectedDept) return;
@@ -297,11 +301,23 @@ export default function AdminDashboard() {
         if (docSnap.exists()) {
           const data = docSnap.data();
           const currentSem = data.currentSemester || "I";
+          const semDates = data.semesterDates || {};
           setClassCurrentSemester(currentSem);
           setSelectedSemester(currentSem);
+          setClassSemesterDates(semDates);
+          if (semDates[currentSem]) {
+            setClassSemesterStartDateInput(semDates[currentSem].startDate || "");
+            setClassSemesterEndDateInput(semDates[currentSem].endDate || "");
+          } else {
+            setClassSemesterStartDateInput(data.semesterStartDate || "");
+            setClassSemesterEndDateInput(data.semesterEndDate || "");
+          }
         } else {
           setClassCurrentSemester("I");
           setSelectedSemester("I");
+          setClassSemesterDates({});
+          setClassSemesterStartDateInput("");
+          setClassSemesterEndDateInput("");
         }
       } catch (err) {
         console.error("Error fetching class metadata:", err);
@@ -711,7 +727,9 @@ export default function AdminDashboard() {
     deptId: string,
     oldClassName: string,
     newClassName: string,
-    newSemester: string
+    newSemester: string,
+    startDate?: string,
+    endDate?: string
   ) => {
     if (!newClassName.trim()) {
       showPopup("warning", "Warning", "Class name cannot be empty.");
@@ -722,8 +740,12 @@ export default function AdminDashboard() {
       setSavingClass(true);
       const isNameChanged = oldClassName !== newClassName;
       const isSemesterChanged = classCurrentSemester !== newSemester;
+      const existingSemDates = classSemesterDates[newSemester] || {};
+      const isDatesChanged =
+        (startDate !== undefined && startDate !== (existingSemDates.startDate || "")) ||
+        (endDate !== undefined && endDate !== (existingSemDates.endDate || ""));
 
-      if (!isNameChanged && !isSemesterChanged) {
+      if (!isNameChanged && !isSemesterChanged && !isDatesChanged) {
         setIsClassEditorOpen(false);
         return;
       }
@@ -756,9 +778,21 @@ export default function AdminDashboard() {
       
       const oldClassSnap = await getDoc(oldClassDocRef);
       const classData = oldClassSnap.exists() ? oldClassSnap.data() : {};
+      
+      const updatedSemesterDates = {
+        ...(classData.semesterDates || {}),
+        [newSemester]: {
+          startDate: startDate || "",
+          endDate: endDate || ""
+        }
+      };
+
       const updatedClassData = {
         ...classData,
-        currentSemester: newSemester
+        currentSemester: newSemester,
+        semesterStartDate: startDate || "",
+        semesterEndDate: endDate || "",
+        semesterDates: updatedSemesterDates
       };
 
       if (isNameChanged) {
@@ -809,6 +843,7 @@ export default function AdminDashboard() {
       // 5. Update local states
       setClassCurrentSemester(newSemester);
       setSelectedSemester(newSemester);
+      setClassSemesterDates(updatedSemesterDates);
       
       if (isNameChanged && selectedClass === oldClassName && selectedDept?.id === deptId) {
         setSelectedClass(newClassName);
@@ -818,7 +853,7 @@ export default function AdminDashboard() {
       await fetchFaculties();
       setIsClassEditorOpen(false);
 
-      showPopup("success", "Success", "Class settings updated successfully!");
+      showPopup("success", "Success", "Class settings and semester dates updated successfully!");
     } catch (err: any) {
       console.error("Error updating class settings:", err);
       showPopup("error", "Error", "Failed to update class settings: " + err.message);
@@ -2063,6 +2098,10 @@ export default function AdminDashboard() {
               onEditClass={() => {
                 setNewClassNameInput(selectedClass);
                 setNewClassSemesterInput(classCurrentSemester);
+                const currentDates = classSemesterDates[classCurrentSemester] || {};
+                setClassSemesterStartDateInput(currentDates.startDate || "");
+                setClassSemesterEndDateInput(currentDates.endDate || "");
+                setIsEndingSemester(false);
                 setIsClassEditorOpen(true);
               }}
             />
@@ -2622,21 +2661,116 @@ export default function AdminDashboard() {
                 <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Current Semester</label>
                 <select
                   value={newClassSemesterInput}
-                  onChange={(e) => setNewClassSemesterInput(e.target.value)}
+                  onChange={(e) => {
+                    const sem = e.target.value;
+                    setNewClassSemesterInput(sem);
+                    const dates = classSemesterDates[sem] || {};
+                    setClassSemesterStartDateInput(dates.startDate || "");
+                    setClassSemesterEndDateInput(dates.endDate || "");
+                    setIsEndingSemester(false);
+                  }}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 cursor-pointer"
                 >
                   {["I", "II", "III", "IV", "V", "VI", "VII", "VIII"].map((sem) => (
-                    <option key={sem} value={sem}>{sem}</option>
+                    <option key={sem} value={sem}>Semester {sem}</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Semester Lifecycle: Start Date & End Semester Flow */}
+              <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                    Semester {newClassSemesterInput} Timeline
+                  </span>
+                  {classSemesterEndDateInput ? (
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-semibold">
+                      Semester Ended
+                    </span>
+                  ) : (
+                    <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-semibold">
+                      Active Semester
+                    </span>
+                  )}
+                </div>
+
+                {/* 1. Start Date Input */}
+                <div>
+                  <label className="block text-[10.5px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                    Semester Start Date <span className="text-orange-600">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={classSemesterStartDateInput}
+                    onChange={(e) => setClassSemesterStartDateInput(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-900 outline-none focus:border-slate-900 shadow-2xs"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">
+                    Starting date for Semester {newClassSemesterInput} attendance
+                  </span>
+                </div>
+
+                {/* 2. End Date Section or "End the semester" button */}
+                {classSemesterEndDateInput || isEndingSemester ? (
+                  <div className="bg-white border border-slate-200 rounded-lg p-3 space-y-2 animate-in fade-in duration-150">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[10.5px] font-bold text-rose-600 uppercase tracking-wider">
+                        Semester End Date
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setClassSemesterEndDateInput("");
+                          setIsEndingSemester(false);
+                        }}
+                        className="text-[10.5px] text-slate-400 hover:text-slate-600 underline cursor-pointer"
+                      >
+                        Clear / Keep Active
+                      </button>
+                    </div>
+                    <input
+                      type="date"
+                      value={classSemesterEndDateInput}
+                      onChange={(e) => setClassSemesterEndDateInput(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-900 outline-none focus:border-rose-500"
+                    />
+                    <span className="text-[10px] text-slate-400 block">
+                      Attendance records will be finalized up to this date.
+                    </span>
+                  </div>
+                ) : (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEndingSemester(true);
+                        const todayStr = new Date().toISOString().split("T")[0];
+                        setClassSemesterEndDateInput(todayStr);
+                      }}
+                      className="w-full py-2 px-3 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200/80 hover:border-rose-300 text-[11px] font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
+                    >
+                      <CheckCircle className="h-3.5 w-3.5" />
+                      <span>End the semester</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="pt-1">
                 <button
                   type="button"
-                  onClick={() => handleSaveClassSettings(selectedDept.id, selectedClass, newClassNameInput, newClassSemesterInput)}
+                  onClick={() =>
+                    handleSaveClassSettings(
+                      selectedDept.id,
+                      selectedClass,
+                      newClassNameInput,
+                      newClassSemesterInput,
+                      classSemesterStartDateInput,
+                      classSemesterEndDateInput
+                    )
+                  }
                   disabled={savingClass}
-                  className="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer text-center disabled:opacity-50"
+                  className="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer text-center disabled:opacity-50 shadow-xs"
                 >
                   {savingClass ? "Saving..." : "Save Class Settings"}
                 </button>
