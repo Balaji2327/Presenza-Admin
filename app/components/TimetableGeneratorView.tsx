@@ -56,6 +56,7 @@ export interface ClassItem {
   id: string;
   name: string;
   department: string;
+  currentSemester?: string; // e.g. "I", "II", "III", "IV", "V", "VI", "VII", "VIII"
   lunchPeriod: number; // class-specific lunch period (e.g. Period 4 for Year 1, Period 5 for Year 3)
 }
 
@@ -262,6 +263,19 @@ export default function TimetableGeneratorView({
     setFacultyList(loadedFaculty);
 
     // 2. Prepare Classes from Presenza Departments
+    const inferSemesterFromName = (clsName: string): string => {
+      const upper = clsName.toUpperCase();
+      if (upper.includes("-VIII") || upper.includes("_VIII") || upper.includes("2027")) return "VIII";
+      if (upper.includes("-VII") || upper.includes("_VII") || upper.includes("2028") || upper.includes("IV-")) return "VII";
+      if (upper.includes("-VI") || upper.includes("_VI")) return "VI";
+      if (upper.includes("-V") || upper.includes("_V") || upper.includes("2029") || upper.includes("III-")) return "V";
+      if (upper.includes("-IV") || upper.includes("_IV")) return "IV";
+      if (upper.includes("-III") || upper.includes("_III") || upper.includes("2030") || upper.includes("II-")) return "III";
+      if (upper.includes("-II") || upper.includes("_II")) return "II";
+      if (upper.includes("-I") || upper.includes("_I") || upper.includes("2031") || upper.includes("I-")) return "I";
+      return "I";
+    };
+
     const loadedClasses: ClassItem[] = [];
     const deptsToScan =
       activeDeptFilter === "ALL"
@@ -271,13 +285,15 @@ export default function TimetableGeneratorView({
     let defaultLunch = 4;
     deptsToScan.forEach((dept) => {
       if (dept.classes && dept.classes.length > 0) {
-        dept.classes.forEach((clsName, idx) => {
-          // Stagger lunch periods slightly (e.g. P4 or P5)
-          const lunch = idx % 2 === 0 ? 4 : 5;
+        dept.classes.forEach((clsName) => {
+          // Default lunch fixed at Period 4 (admin can change it in the dropdown)
+          const lunch = 4;
+          const inferredSem = inferSemesterFromName(clsName);
           loadedClasses.push({
             id: `c_${clsName.toLowerCase().replace(/[^a-z0-9]/g, "_")}`,
             name: clsName,
             department: dept.name,
+            currentSemester: inferredSem,
             lunchPeriod: lunch,
           });
         });
@@ -289,11 +305,35 @@ export default function TimetableGeneratorView({
         id: "c_1",
         name: "SECCJ2030A",
         department: selectedDept?.name || "General",
+        currentSemester: "III",
         lunchPeriod: 4,
       });
     }
 
     setClasses(loadedClasses);
+
+    // Asynchronously fetch exact currentSemester from Firestore for all classes
+    deptsToScan.forEach(async (dept) => {
+      if (!dept.id) return;
+      try {
+        const snap = await getDocs(
+          collection(db, "colleges", "departments", "all_departments", dept.id, "classes")
+        );
+        snap.forEach((dSnap) => {
+          const data = dSnap.data();
+          if (data?.currentSemester) {
+            setClasses((prev) =>
+              prev.map((c) =>
+                c.name.toLowerCase() === dSnap.id.toLowerCase()
+                  ? { ...c, currentSemester: data.currentSemester }
+                  : c
+              )
+            );
+          }
+        });
+      } catch (err) {}
+    });
+
     if (loadedClasses.length > 0) {
       setSelectedClassView(loadedClasses[0].id);
       setSelectedClassForFaculty(loadedClasses[0].name);
@@ -1605,6 +1645,7 @@ Return strictly a JSON array of slots:
             timetables: existingTimetables,
             courseMapping: existingMappings,
             periodsPerDay: periodsPerDay,
+            currentSemester: currentSem,
           },
           { merge: true }
         );
@@ -2087,8 +2128,17 @@ Return strictly a JSON array of slots:
                         onClick={(e) => e.stopPropagation()}
                         onChange={(e) => handleClassChange(idx, "name", e.target.value)}
                         placeholder="e.g. SECCJ2030A"
-                        className="flex-1 text-xs font-medium border-0 bg-transparent focus:bg-white focus:border focus:border-orange-500 rounded-lg px-2 py-1.5 focus:outline-none transition-all text-slate-800"
+                        className="flex-1 text-xs font-medium border-0 bg-transparent focus:bg-white focus:border focus:border-orange-500 rounded-lg px-2 py-1.5 focus:outline-none transition-all text-slate-800 min-w-0"
                       />
+                      {/* Current Semester Fixed Badge (from Class Editor) */}
+                      {cls.name.trim() && (
+                        <span
+                          className="text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200/80 rounded-lg px-2 py-0.5 shrink-0 shadow-2xs select-none"
+                          title={`Fixed Current Semester configured in Class Editor: Semester ${cls.currentSemester || "I"}`}
+                        >
+                          Sem {cls.currentSemester || "I"}
+                        </span>
+                      )}
                       {cls.name.trim() && (
                         <span
                           className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md shrink-0 transition-colors ${
@@ -2463,9 +2513,12 @@ Return strictly a JSON array of slots:
                   className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3"
                 >
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100 flex-wrap gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <span className="px-3 py-1 rounded-xl bg-orange-100 text-orange-800 font-semibold text-xs">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-3 py-1 rounded-xl bg-orange-100 text-orange-950 font-bold text-xs">
                         {cls.name}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-lg bg-blue-50 text-blue-800 font-bold text-[10px] border border-blue-200/70">
+                        Semester {cls.currentSemester || "I"}
                       </span>
                       <span className="text-xs text-slate-500 font-medium">
                         Lunch: Period {cls.lunchPeriod} ·{" "}
@@ -3058,8 +3111,13 @@ Return strictly a JSON array of slots:
                     <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                       {selectedDept?.name || "Department"} — Class Time Table
                     </p>
-                    <h3 className="text-lg font-bold tracking-tight mt-0.5">
-                      {selectedClassObj?.name || "Class Timetable"}
+                    <h3 className="text-lg font-bold tracking-tight mt-0.5 flex items-center gap-2 flex-wrap">
+                      <span>{selectedClassObj?.name || "Class Timetable"}</span>
+                      {selectedClassObj?.currentSemester && (
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-300 border border-orange-400/30">
+                          Semester {selectedClassObj.currentSemester}
+                        </span>
+                      )}
                     </h3>
                   </div>
                   <div className="text-right space-y-0.5">
